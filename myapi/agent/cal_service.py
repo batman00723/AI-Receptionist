@@ -81,3 +81,22 @@ class CalService:
         response.raise_for_status()
 
         return response.json()
+    
+    def reschedule_booking(self, booking_uid, new_utc_time):
+        url = f"{self.base_url}/bookings/{booking_uid}/reschedule"
+
+        payload = {
+            "start": new_utc_time,
+            "reschedulingReason":
+                "Patient requested reschedule"
+        }
+
+        response= requests.post(url,
+                                headers= self.headers,
+                                json= payload)
+        print(response.status_code)
+        print(response.text)
+
+        response.raise_for_status()
+
+        return response.json()

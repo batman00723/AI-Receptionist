@@ -1,4 +1,4 @@
-from .nodes import router_node, faq_node, booking_node, emergency_node, refusal_node, check_availabiity_node, routing_logic, booking_followup_node, booking_validate_node, booking_validation_router, cancel_booking_node, show_booking_node
+from .nodes import router_node, faq_node, booking_node, emergency_node, refusal_node, check_availabiity_node, routing_logic, booking_followup_node, booking_validate_node, booking_validation_router, cancel_booking_node, show_booking_node, check_reschedule_availabiity_node, reschedule_followup_node, reschedule_node, reschedule_validate_node, reschedule_validation_router, reschedule_router
 from langgraph.graph import StateGraph, END
 from functools import partial
 from .state import ReceptionistState
@@ -32,6 +32,10 @@ def create_receptionist_agent(llm):
     workflow.add_node("refusal_node", refusal_node)
     workflow.add_node("cancel_booking", cancel_booking_node)
     workflow.add_node("show_booking", show_booking_node)
+    workflow.add_node("reschedule_booking", reschedule_node)
+    workflow.add_node("reschedule_validation", reschedule_validate_node)
+    workflow.add_node("reschedule_followup", reschedule_followup_node)
+    workflow.add_node("reschedule_availability", check_reschedule_availabiity_node)
 
     workflow.set_entry_point("router")
 
@@ -44,10 +48,12 @@ def create_receptionist_agent(llm):
             "appointment_manager": "appointment_manager",
             "refusal_node": "refusal_node",
             "cancel_booking": "cancel_booking",
+            "reschedule_booking": "reschedule_booking",
             "show_booking": "show_booking"
         }
     )
     workflow.add_edge("appointment_manager", "booking_validation")
+
 
     workflow.add_conditional_edges(
         "booking_validation",
@@ -59,6 +65,24 @@ def create_receptionist_agent(llm):
         }
     )
 
+
+    workflow.add_conditional_edges(
+        "reschedule_booking",
+        reschedule_router,
+        {
+            "validate": "reschedule_validation",
+            "end": END
+        }
+    )
+    workflow.add_conditional_edges(
+        "reschedule_validation",
+        reschedule_validation_router,
+        {
+            "reschedule_followup": "reschedule_followup",
+            "reschedule_availability": "reschedule_availability"
+        }
+    )
+
     workflow.add_edge("knowledge_base", END)
     workflow.add_edge("emergency_escalation", END)
     workflow.add_edge("refusal_node", END)
@@ -66,6 +90,8 @@ def create_receptionist_agent(llm):
     workflow.add_edge("show_booking", END)
     workflow.add_edge("availability_node", END)
     workflow.add_edge("booking_followup", END)
+    workflow.add_edge("reschedule_followup", END)
+    workflow.add_edge("reschedule_availability", END)
 
     app= workflow.compile(checkpointer= memory)
 

@@ -20,3 +20,6 @@ class ReceptionistState(TypedDict):
     active_workflow: Optional[str]
 
     active_appointment: Annotated[Optional[dict], merge_dict]
+
+    reschedule_data: Annotated[Optional[dict], merge_dict]
+    missing_reschedule_fields: Optional[list]

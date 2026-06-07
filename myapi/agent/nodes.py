@@ -17,10 +17,9 @@ import pytz
 import dateparser
 
 
-
 class RouteResponse(BaseModel):
-    intent: Literal[ "booking", "cancel", "show_booking", "faq", "emergency", "nonsense", "completed"] = Field(
-        description="Categorize the user's query into: 'faq', 'booking', 'emergency', or 'nonsense'."
+    intent: Literal[ "booking", "cancel", "show_booking", "faq", "emergency", "nonsense", "reschedule", "completed"] = Field(
+        description="Categorize the user's query into: 'faq', 'booking', 'cancel', 'reschedule', 'emergency', or 'nonsense'."
     )
     # confidence: float = Field(
     #     description="A score between 0.0 and 1.0 reflecting how sure you are of this intent."
@@ -46,6 +45,11 @@ def router_node(state: ReceptionistState):
     if state.get("active_workflow") == "booking" and state.get("missing_booking_fields"):
         return {
             "intent": "booking",
+            "query": query
+        }
+    if state.get("active_workflow") == "reschedule" and state.get("missing_reschedule_fields"):
+        return {
+            "intent": "reschedule",
             "query": query
         }
     
@@ -134,7 +138,19 @@ def router_node(state: ReceptionistState):
         - user explicitly says to cancel their booking.
         - user says to cancel booking
 
-        6. show_boooking
+        6. reschedule
+        Use if:
+        - user wants to move an appointment
+        - user wants a different date
+        - user wants a different time
+
+        Examples:
+        - reschedule my appointment
+        - move my appointment
+        - change my booking
+        - can I come next Friday instead
+
+        7. show_boooking
         Use if user wants to:
         - view appointment
         - check appointment
@@ -189,6 +205,8 @@ def routing_logic(state: ReceptionistState):
         return "cancel_booking"
     elif intent == "show_booking":
         return "show_booking"
+    elif intent == "reschedule":
+        return "reschedule_booking"
     else:
         return "refusal_node"
 
@@ -579,7 +597,7 @@ def check_availabiity_node(state: ReceptionistState):
         else:
             # MVP Naive fail message will change it later and add neaerest slots available instead of hard slots
             fail_message = f"This time slot is not available. Try these slots: {available_slots}"
-            return {"clinic_response": fail_message, "intent": "booking"}
+            return {"clinic_response": fail_message, "intent": "booking", "active_workflow": "booking"}
     except Exception as e:
         # If api is down then manual entry by human receptionist.
         error_message= "There is technical glitch, but I have informed your booking details to my supervisor he will handle and send you conformation messge soon.."
@@ -695,3 +713,307 @@ def show_booking_node(state: ReceptionistState):
         "messages": [AIMessage(content= response)]
         }
 
+
+
+
+
+class RescheduleExtraction(BaseModel):
+    date_phrase: Optional[str] = Field(
+        default= None,
+        description= "Raw date phrase exactly as user said it. Example: tomorrow, next Friday may 20"
+    )
+    time_phrase: Optional[str]= Field(
+        default= None,
+        description= "Raw time phrase as exactly as user said it. Example: 2pm, 10:30 pm"
+    )
+
+def reschedule_router(state):
+
+    if not state.get("active_appointment"):
+        return "end"
+
+    return "validate"
+
+
+def reschedule_node(state: ReceptionistState):
+    appointment = state.get("active_appointment")
+    print("ACTIVE APPOINTMENT")
+    print(state.get("active_appointment"))
+
+
+    tz_ist = pytz.timezone("Asia/Kolkata")
+    now_ist = datetime.now(tz=tz_ist)
+
+    rescheduled_booking = state.get("reschedule_data") or {}
+    query = state["query"]
+
+    structured_llm = llm.model.with_structured_output(
+        RescheduleExtraction
+    )
+
+    system_prompt = f"""
+        You are a strict booking information extraction system.
+
+        Your ONLY job is to extract structured booking fields from the user's latest message.
+
+        Extract:
+        - date_phrase
+        - time_phrase
+
+        IMPORTANT:
+        - Extract ONLY explicitly mentioned information.
+        - NEVER infer missing fields.
+        - NEVER guess.
+        - NEVER calculate actual dates.
+        - NEVER rewrite values.
+        - Return raw user phrases exactly as written.
+        - Use recent conversation context ONLY to understand references, not to invent values.
+
+        FIELD RULES:
+
+        1. date_phrase
+        Extract ONLY:
+        - weekdays
+        - dates
+        - relative dates
+        - booking day references
+
+        Examples:
+        - "Friday"
+        - "next monday"
+        - "tomorrow"
+        - "May 22"
+
+        DO NOT extract:
+        - treatment names
+        - generic booking phrases
+        - unrelated text
+
+        2. time_phrase
+        Extract ONLY explicit times.
+
+        Examples:
+        - "2 pm"
+        - "11:30"
+        - "morning"
+        - "afternoon"
+
+        DO NOT infer times.
+
+
+        CONTEXT RULES:
+
+        - If user says:
+        "yes book it"
+        → DO NOT invent missing fields.
+
+        - If user says:
+        "Friday at 2 pm"
+        → extract both.
+
+        - If user only says:
+        "2 pm"
+        → extract ONLY time_phrase.
+
+        - If a field is not explicitly present in latest message:
+        return null for that field.
+
+        EXISTING BOOKING STATE:
+        {rescheduled_booking}
+
+        USER MESSAGE:
+        {query}
+
+        Return ONLY valid JSON.
+
+        Example:
+        {{
+        "date_phrase": null,
+        "time_phrase": "2 pm"
+        }}
+    """
+
+    extraction = structured_llm.invoke(system_prompt)
+    print(extraction)
+
+    print("Raw Extracted Reschedule Data")
+    print(extraction)
+
+    def clean(value):
+
+        if not value:
+            return None
+
+        value = value.strip().lower()
+        invalid = {
+            "",
+            "null",
+            "none",
+            "unknown",
+            "n/a",
+        }
+        return None if value in invalid else value
+
+    raw_date = clean(extraction.date_phrase)
+    raw_time = clean(extraction.time_phrase)
+
+    effective_date = raw_date or rescheduled_booking.get("date")
+    effective_time = raw_time or rescheduled_booking.get("time")
+
+    updated_booking = {
+        "date": effective_date,
+        "time": effective_time,
+        "utc_time": rescheduled_booking.get("utc_time"),
+    }
+
+    if effective_date and effective_time:
+
+        combined_text = (
+            f"{effective_date} {effective_time}"
+        )
+
+        parsed_dt = dateparser.parse(
+            combined_text,
+            settings={
+                "PREFER_DATES_FROM": "future",
+                "RELATIVE_BASE": now_ist,
+                "TIMEZONE": "Asia/Kolkata",
+                "RETURN_AS_TIMEZONE_AWARE": True,
+            },
+        )
+
+        if parsed_dt:
+
+            updated_booking["date"] = (
+                parsed_dt.strftime("%Y-%m-%d")
+            )
+            updated_booking["time"] = (
+                parsed_dt.strftime("%H:%M")
+            )
+            utc_dt = parsed_dt.astimezone(
+                pytz.utc
+            )
+            updated_booking["utc_time"] = (
+                utc_dt.strftime(
+                    "%Y-%m-%dT%H:%M:%S.000Z"
+                )
+            )
+
+            print("IST:", parsed_dt)
+
+            print(
+                "UTC:",
+                updated_booking["utc_time"]
+            )
+        else:
+
+            print("Date parsing failed")
+
+    return {
+        "reschedule_data": updated_booking,
+        "active_workflow": "reschedule"
+    }
+
+def reschedule_validate_node(state: ReceptionistState):
+
+    reschedule = state.get("reschedule_data") or {}
+    
+    missing = []
+
+    if not reschedule.get("date"):
+        missing.append("date")
+    if not reschedule.get("time"):
+        missing.append("time")
+    print("RESCHEDULE STATE INSIDE VALIDATION")
+    print(reschedule)
+
+    return {
+        "missing_reschedule_fields": missing,
+        "active_workflow": "reschedule"
+    }
+
+
+def reschedule_validation_router(state: ReceptionistState):
+    missing= state.get("missing_reschedule_fields", [])
+
+    if missing:
+        return "reschedule_followup"
+    
+    return "reschedule_availability"
+
+def reschedule_followup_node(state: ReceptionistState):
+    missing= state.get("missing_reschedule_fields", [])
+
+    prompt_map = {
+        "date": "What new day you want to come instead?",
+        "time": "What new time would you like instead?",
+    }
+
+    response_text= prompt_map[missing[0]]
+
+    return {
+        "messages": [AIMessage(content= response_text)],
+        "clinic_response": response_text,
+        "active_workflow": "reschedule"
+    }
+
+
+def check_reschedule_availabiity_node(state: ReceptionistState):
+    cal= CalService()
+    reschedule= state["reschedule_data"]
+    print("Reschedule TIME:", reschedule["time"])
+    print("RESCHEDULE ATTEMPT")
+    print(reschedule)
+
+    print("ACTIVE APPOINTMENT")
+    active_appointment= state["active_appointment"]
+    print(state.get("active_appointment") or {})
+
+    updated_appointment = {
+    **active_appointment,
+    "date": reschedule["date"],
+    "time": reschedule["time"]
+        }
+
+    try:
+        print(reschedule["date"])
+        available_slots= cal.get_slots(reschedule["date"])
+        print("AVAILABLE SLOTS:", available_slots)
+        is_available = any(reschedule["utc_time"] == slot["time"] for slot in available_slots)
+
+        if is_available:
+            reschedule_response= cal.reschedule_booking(booking_uid= active_appointment["booking_uid"],
+                                                        new_utc_time= reschedule["utc_time"])
+            print(reschedule_response)
+            final_message= f"Done! Your rescheduled booking is officially confirmed for {reschedule['time']} on {reschedule['date']}. See you then!"
+            print(f"Booking Response: {reschedule_response}")
+
+            print("OLD APPOINTMENT")
+            print(active_appointment)
+
+            print("RESCHEDULE RESPONSE")
+            print(reschedule_response)
+
+            print("NEW UID")
+            print(reschedule_response["data"]["uid"])
+
+            print("RETURNING ACTIVE APPOINTMENT")
+
+            print({
+                "booking_uid": reschedule_response["data"]["uid"],
+                "booking_id": reschedule_response["data"]["id"],
+                "date": reschedule["date"],
+                "time": reschedule["time"],
+                "service": active_appointment["service"]
+            })
+            return {"clinic_response": final_message, "intent": "completed", "reschedule_data": {}, "missing_reschedule_fields": [], "active_workflow": None,  "active_appointment": updated_appointment}
+        
+        else:
+            # MVP Naive fail message will change it later and add neaerest slots available instead of hard slots
+            fail_message = f"This time slot is not available. Try these slots: {available_slots}"
+            return {"clinic_response": fail_message, "intent": "reschedule", "active_workflow": "reschedule"}
+    except Exception as e:
+        # If api is down then manual entry by human receptionist.
+        error_message= "There is technical glitch, but I have informed your reschedule booking details to my supervisor he will handle and send you conformation messge soon.."
+        print(e)
+        return {"clinic_response": error_message, "intent": "emergency", "active_workflow": None}
