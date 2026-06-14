@@ -11,7 +11,7 @@ class LLMService:
             api_key= settings.groq_api_key.get_secret_value(),
             model= "meta-llama/llama-4-scout-17b-16e-instruct",
             temperature= 0.5,
-            max_tokens= 150
+            max_tokens= 200
         )
     def invoke(self, messages):
         response= self.model.invoke(messages)

@@ -1,97 +1,430 @@
-# AI Receptionist — Conversational AI Workflow for Dental Clinics
+# AI Receptionist
 
-AI Receptionist is a stateful conversational AI system built to automate front-desk operations at dental clinics via WhatsApp.
+A stateful workflow-based conversational AI system for appointment orchestration, retrieval-augmented question answering, and patient workflow automation.
 
-The system handles:
-
-* appointment scheduling
-* FAQ retrieval
-* emergency escalation
-* multi-turn conversations
-* real-time slot booking
-
-using LangGraph orchestration, RAG pipelines, Cal.com APIs, and Twilio messaging.
+Built using LangGraph, Django, PostgreSQL, pgvector, and Cal.com.
 
 ---
 
-# Problem
+# System Goal
 
-Most clinic front desks still rely on:
+Traditional chatbot architectures struggle with workflows that require:
 
-* manual appointment handling
-* repetitive FAQ answering
-* fragmented communication workflows
-* delayed patient responses
-* overloaded reception staff
+* persistent state
+* multi-turn information gathering
+* external API orchestration
+* deterministic business logic
 
----
+This project explores a hybrid architecture that combines:
 
-# Solution
+* LLM reasoning
+* workflow orchestration
+* persistent state management
+* retrieval-augmented generation
 
-AI Receptionist combines deterministic backend workflows with LLM-driven conversational orchestration.
-
-The system can:
-
-- Answer clinic-specific questions using RAG
-
-- Maintain conversational memory across multiple messages
-
-- Check real-time appointment availability
-
-- Schedule appointments through Cal.com APIs
-
-- Escalate urgent dental cases automatically
-
-- Operate directly through WhatsApp
+to automate dental clinic front desk operations.
 
 ---
 
-# Core Architecture
+# Architecture
 
 <p align="center">
-  <img src="AI Receptionist 1.png" width="600" title="System Architecture">
+  <img src="Dental Receptionist Agent.png" width="1100">
 </p>
 
 ---
 
-# Technical Stack
+# Core Design Principles
 
-## Backend
+## 1. Workflow Oriented Architecture
 
-* Django
-* Django Ninja Extra
-* LangGraph
-* LangChain
+Instead of relying on a single agent loop:
 
-## AI Stack
+```text
+User
+↓
+LLM
+↓
+Response
+```
 
-* Llama 3.1 8B via Cerebras
-* Gemini Embeddings
-* Voyage AI Reranker
-* Structured LLM Outputs
+the system decomposes responsibilities into specialized workflows:
 
-## Database & Retrieval
+```text
+Intent Router
+├── FAQ Workflow
+├── Booking Workflow
+├── Reschedule Workflow
+├── Cancellation Workflow
+├── Emergency Workflow
+└── Fallback Workflow
+```
 
-* PostgreSQL
-* pgvector
-* Hybrid Search
-* SearchVector
+This improves:
 
-## APIs
-
-* Cal.com
-* Twilio WhatsApp
-* Resend Email API
-
+* determinism
+* debuggability
+* failure handling
+* state management
 
 ---
 
-# Current MVP Capabilities
+## 2. Separation of Storage Concerns
 
-* Conversational dental appointment booking
-* WhatsApp-based AI receptionist
-* Real-time slot checking
-* Persistent conversation memory
-* FAQ retrieval from clinic documents
-* Emergency escalation workflows
-* Multi-turn scheduling flows
+The system separates data into three independent storage layers.
+
+### Conversational State
+
+Stored using LangGraph Postgres Checkpointer.
+
+Responsibilities:
+
+* conversation history
+* active workflow state
+* active appointment context
+* multi-turn memory
+
+```text
+PostgreSQL
+└── LangGraph Checkpoints
+```
+
+---
+
+### Business Data
+
+Stores clinic facing operational records.
+
+```text
+PostgreSQL
+├── Patients
+└── Appointments
+```
+
+Responsibilities:
+
+* patient persistence
+* appointment tracking
+* cancellation status
+* rescheduling history
+
+---
+
+### Knowledge Storage
+
+Stores retrieval data.
+
+```text
+Documents
+↓
+Chunks
+↓
+Embeddings
+↓
+pgvector
+```
+
+Responsibilities:
+
+* semantic retrieval
+* FAQ answering
+* clinic-specific knowledge
+
+---
+
+# Intent Routing
+
+The router acts as the entry point for all requests.
+
+Responsibilities:
+
+* classify user intent
+* dispatch workflow
+* preserve conversation context
+
+Supported routes:
+
+```text
+FAQ
+Booking
+Reschedule
+Cancel
+Show Appointment
+Emergency
+Fallback
+```
+
+---
+
+# Booking Workflow
+
+The booking workflow combines LLM extraction with deterministic validation.
+
+Pipeline:
+
+```text
+User Query
+↓
+Booking Agent
+↓
+Validation Node
+↓
+Followup Node
+↓
+Availability Check
+↓
+Cal.com API
+↓
+Persistence Layer
+```
+
+The booking agent extracts:
+
+```json
+{
+  "date": "...",
+  "time": "...",
+  "service": "..."
+}
+```
+
+Validation is intentionally separated from extraction.
+
+This prevents malformed LLM outputs from reaching external systems.
+
+---
+
+# Reschedule Workflow
+
+Rescheduling introduces additional complexity because appointment state must remain synchronized across:
+
+```text
+Conversation State
+Cal.com
+Appointment Database
+```
+
+Pipeline:
+
+```text
+Retrieve Active Appointment
+↓
+Extract New Date/Time
+↓
+Validate
+↓
+Check Availability
+↓
+Reschedule Through Cal.com
+↓
+Update Persistent Records
+```
+
+A previous bug involved stale booking identifiers after successful reschedules.
+
+The workflow now synchronizes:
+
+```text
+active_appointment
+booking_uid
+booking_id
+```
+
+after every successful reschedule operation.
+
+---
+
+# Cancellation Workflow
+
+Pipeline:
+
+```text
+Retrieve Active Appointment
+↓
+Cal.com Cancellation
+↓
+Update Appointment Status
+↓
+Persist Changes
+```
+
+Failure path:
+
+```text
+Cal.com Failure
+↓
+Human Escalation
+↓
+Email Notification
+```
+
+---
+
+# Retrieval Architecture
+
+FAQ answering uses a hybrid retrieval pipeline.
+
+Document ingestion:
+
+```text
+PDF / DOCX / TXT
+↓
+Chunking
+↓
+Embedding Generation
+↓
+pgvector Storage
+```
+
+Retrieval:
+
+```text
+Query
+↓
+Vector Search
+↓
+PostgreSQL Full Text Search
+↓
+Reranking
+↓
+Context Generation
+↓
+LLM
+```
+
+Technologies:
+
+* pgvector
+* SearchVector
+* HNSW Index
+* Voyage Reranker
+
+---
+
+# State Management
+
+Conversation state is persisted using:
+
+```text
+LangGraph
++
+PostgresSaver
+```
+
+This enables:
+
+* multi-turn workflows
+* workflow continuation
+* interruption recovery
+* appointment context retention
+
+without storing state inside the application server.
+
+---
+
+# Data Model
+
+## Patient
+
+```text
+phone
+created_at
+```
+
+Patients are uniquely identified through WhatsApp phone numbers.
+
+---
+
+## Appointment
+
+```text
+booking_uid
+booking_id
+service
+date
+time
+status
+patient
+```
+
+Status transitions:
+
+```text
+scheduled
+↓
+rescheduled
+↓
+cancelled
+```
+
+---
+
+# Failure Handling
+
+External API failures are treated as workflow failures rather than silent errors.
+
+Recovery mechanisms:
+
+* human escalation
+* email notification
+* workflow termination
+* user feedback
+
+This prevents appointment requests from being lost when third-party services are unavailable.
+
+---
+
+# Technology Stack
+
+### Backend
+
+* Django
+* Django Ninja Extra
+
+### Workflow Engine
+
+* LangGraph
+
+### LLM Layer
+
+* meta-llama/llama-4-scout-17b-16e-instruct by Groq
+
+### Retrieval
+
+* pgvector
+* Gemini Embeddings
+
+### Persistence
+
+* PostgreSQL
+
+### External Integrations
+
+* Cal.com
+* Twilio WhatsApp
+* Brevo
+
+---
+
+# Future Work
+
+* Admin Dashboard
+* Document Management Portal
+* Semantic Caching
+* Voice Calling Workflow
+* Analytics Layer
+* Patient Portal
+
+---
+
+# Running Locally
+
+```bash
+git clone https://github.com/batman00723/AI-Receptionist.git
+
+pip install -r requirements.txt
+
+python manage.py migrate
+
+python manage.py runserver
+```
