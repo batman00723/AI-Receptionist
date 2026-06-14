@@ -48,3 +48,5 @@ build/
 # Temporary files
 temp/
 tmp/
+
+media/

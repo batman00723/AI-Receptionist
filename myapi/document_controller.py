@@ -1,4 +1,4 @@
-from ninja_extra import ControllerBase, api_controller, http_post, http_get
+from ninja_extra import ControllerBase, api_controller, http_post, http_get, http_delete
 from ninja import File, UploadedFile, Form
 from django.db import transaction
 from .schemas import DocumentIn, DocumentOut
@@ -16,6 +16,9 @@ import logging
 from langchain_core.messages import HumanMessage
 from twilio.twiml.messaging_response import MessagingResponse
 from django.http import HttpResponse
+from myapi.models import Document, DeletedDocument
+from .archive_and_delete import archive_and_delete_document
+
 
 
 llm= LLMService()
@@ -98,6 +101,17 @@ class DocumentOperationController(ControllerBase):
             
         return document
     
+    @http_delete("/delete")
+    def delete_document(request, document_id):
+
+        document = Document.objects.get(id=document_id)
+        archive_and_delete_document(document)
+
+        return {
+            "message": "Document deleted successfully"
+        }
+    
+    
     @http_get("/status")
     def document_processing_status(self, request, doc_id: int):
         document= Document.objects.get(id= doc_id)
@@ -106,8 +120,6 @@ class DocumentOperationController(ControllerBase):
             "doc_name": document.doc_name,
             "status": document.status
         }
-
-
 
 
 @api_controller("/query", tags= ['Chatbot'])
@@ -130,12 +142,14 @@ class ChatOperationController(ControllerBase):
             final_state= receptionist_agent.invoke(initial_state, config= config)
             response= final_state.get("clinic_response")
             booking_data= final_state.get("booking_data")
+            reschedule_data= final_state.get("reschedule_data")
             print("Agent Ran Successfully.")
 
 
             return {
                 "response": response,
-                "booking_data": booking_data
+                "booking_data": booking_data,
+                "reschedule_data": reschedule_data
             }
         
         except Exception as e:
@@ -147,5 +161,8 @@ class ChatOperationController(ControllerBase):
                 "deatils": str(e) if settings.debug else "Internal Server Error"
             }
         
-
-
+@api_controller("/pingpong", tags= ['Alive'])
+class PingPongOperationController(ControllerBase):
+    @http_get("/ping")
+    def ping(self, request):
+        return {"response": "pong"}

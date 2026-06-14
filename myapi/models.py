@@ -15,6 +15,13 @@ class Document(models.Model):
 
     def __str__(self):
         return self.doc_name
+    
+class DeletedDocument(models.Model):
+    original_doc_name = models.CharField(max_length=100)
+    raw_content = models.TextField()
+    deleted_at = models.DateTimeField(auto_now_add=True)
+
+    purge_after = models.DateTimeField()
 
 class DocumentChunk(models.Model):
     document= models.ForeignKey(Document, on_delete= models.CASCADE, related_name= "chunks")
@@ -38,3 +45,24 @@ class DocumentChunk(models.Model):
 
             GinIndex(fields=['search_vector'])
         ]
+
+
+class Patient(models.Model):
+    phone = models.CharField(max_length=20, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Appointment(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="appointments")
+
+    booking_uid = models.CharField(max_length=255)
+    booking_id = models.BigIntegerField()
+
+    service = models.CharField(max_length=255)
+
+    date = models.DateField()
+    time = models.TimeField()
+
+    status = models.CharField(max_length=20, default="scheduled")
+
+    created_at = models.DateTimeField(auto_now_add=True)

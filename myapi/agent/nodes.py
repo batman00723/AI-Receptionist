@@ -2,7 +2,6 @@ from myapi.rag_pipeline.llm import LLMService
 from pydantic import BaseModel, Field
 from .state import ReceptionistState
 from backend.config import settings
-from langchain_cerebras import ChatCerebras
 from myapi.rag_pipeline.llm import LLMService
 from langgraph.graph import END
 from myapi.rag_pipeline.embedding import EmbeddingService
@@ -15,7 +14,7 @@ from typing import Literal
 from datetime import datetime
 import pytz
 import dateparser
-
+from myapi.models import Patient, Appointment
 
 class RouteResponse(BaseModel):
     intent: Literal[ "booking", "cancel", "show_booking", "faq", "emergency", "nonsense", "reschedule", "completed"] = Field(
@@ -37,7 +36,6 @@ def router_node(state: ReceptionistState):
     message_history= trimmer.invoke(state["messages"])
     query= state["query"]
 
-    print(f"{message_history}")
 
     if not message_history:
         return {"query": query }
@@ -586,6 +584,20 @@ def check_availabiity_node(state: ReceptionistState):
             booking_response= cal.create_booking(booking, {"phone": state.get("user_phone", "000000")})
             final_message= f"Done! Your booking is officially confirmed for {booking['time']} on {booking['date']}. See you then!"
             print(f"Booking Response: {booking_response}")
+
+            
+            # Create patient record in patient table and also in Appointment table
+            patient, _ = Patient.objects.get_or_create(phone=state["user_phone"])
+            Appointment.objects.create(
+                patient=patient,
+                booking_uid=booking_response["data"]["uid"],
+                booking_id=booking_response["data"]["id"],
+                service=booking["service"],
+                date=booking["date"],
+                time=booking["time"],
+                status="scheduled"
+            )
+
             return {"clinic_response": final_message, "intent": "completed", "booking_data": {}, "missing_booking_fields": [], "active_workflow": None,  "active_appointment": {
                     "booking_uid": booking_response["data"]["uid"],
                     "booking_id": booking_response["data"]["id"],
@@ -627,18 +639,15 @@ def emergency_node(state: ReceptionistState):
 
 
 def cancel_booking_node(state: ReceptionistState):
+    print("Entered Cancel Booking Node" \
+    "")
     appointment= state.get("active_appointment")
     print(f"Active Appointment: {appointment}")
     
     if not appointment:
-        response= ( "I couldn't find any active appointment to cancel"
-        )
-        return {
-            "clinic_response": response,
-            "messages": [
-                AIMessage(content= response)
-            ]
-            }
+        response= ( "I couldn't find any active appointment to cancel")
+        
+        return {"clinic_response": response, "messages": [AIMessage(content= response)]}
     
     cal= CalService()
 
@@ -647,8 +656,12 @@ def cancel_booking_node(state: ReceptionistState):
             appointment["booking_uid"]
         )
         print(result)
+        
+        # Update Appointment table 
+        Appointment.objects.filter(booking_uid=appointment["booking_uid"]).update(status="cancelled")
 
         response= f"Your appointment on {appointment['date']} at {appointment['time']} has been cancelled."
+
         return{
             "clinic_response": response,
             "messages": [
@@ -669,6 +682,7 @@ def cancel_booking_node(state: ReceptionistState):
             )
 
             response= "There is a techincal glitch, I have send your cancellation request to my supervisor."
+
 
             return {
             "clinic_response": response,
@@ -715,8 +729,6 @@ def show_booking_node(state: ReceptionistState):
 
 
 
-
-
 class RescheduleExtraction(BaseModel):
     date_phrase: Optional[str] = Field(
         default= None,
@@ -727,16 +739,19 @@ class RescheduleExtraction(BaseModel):
         description= "Raw time phrase as exactly as user said it. Example: 2pm, 10:30 pm"
     )
 
-def reschedule_router(state):
-
-    if not state.get("active_appointment"):
-        return "end"
-
-    return "validate"
 
 
 def reschedule_node(state: ReceptionistState):
     appointment = state.get("active_appointment")
+    if not appointment:
+        response= "You don't have any appointment scheduled to reschedule."
+        return {
+            "clinic_response": response,
+            "messages": [AIMessage(content=response)],
+            "intent": "completed",
+            "active_workflow": None
+        }
+    
     print("ACTIVE APPOINTMENT")
     print(state.get("active_appointment"))
 
@@ -840,7 +855,6 @@ def reschedule_node(state: ReceptionistState):
     print(extraction)
 
     def clean(value):
-
         if not value:
             return None
 
@@ -935,7 +949,7 @@ def reschedule_validate_node(state: ReceptionistState):
 
 def reschedule_validation_router(state: ReceptionistState):
     missing= state.get("missing_reschedule_fields", [])
-
+    print(f"Missing reschedule data: {missing}")
     if missing:
         return "reschedule_followup"
     
@@ -969,12 +983,6 @@ def check_reschedule_availabiity_node(state: ReceptionistState):
     active_appointment= state["active_appointment"]
     print(state.get("active_appointment") or {})
 
-    updated_appointment = {
-    **active_appointment,
-    "date": reschedule["date"],
-    "time": reschedule["time"]
-        }
-
     try:
         print(reschedule["date"])
         available_slots= cal.get_slots(reschedule["date"])
@@ -999,13 +1007,28 @@ def check_reschedule_availabiity_node(state: ReceptionistState):
 
             print("RETURNING ACTIVE APPOINTMENT")
 
-            print({
-                "booking_uid": reschedule_response["data"]["uid"],
-                "booking_id": reschedule_response["data"]["id"],
-                "date": reschedule["date"],
-                "time": reschedule["time"],
-                "service": active_appointment["service"]
-            })
+            # Now new booking uid and bookinng id is given to updated booking doct instance and further it will overwrite the stale old data of active appointmet as that active apppointment is not new rescheduled appointemtn
+            # and the rescheduled appointment returns new booking uid and id so we put it in active appointment and overwrite old appointment.
+            updated_appointment = {
+            "booking_uid": reschedule_response["data"]["uid"],
+            "booking_id": reschedule_response["data"]["id"],
+            "date": reschedule["date"],
+            "time": reschedule["time"],
+            "service": active_appointment["service"]
+            }
+
+            print(updated_appointment)
+
+            # Update appointments table
+            Appointment.objects.filter(
+                booking_uid=active_appointment["booking_uid"]
+            ).update(
+                booking_uid=reschedule_response["data"]["uid"],
+                booking_id=reschedule_response["data"]["id"],
+                date=reschedule["date"],
+                time=reschedule["time"]
+            )
+
             return {"clinic_response": final_message, "intent": "completed", "reschedule_data": {}, "missing_reschedule_fields": [], "active_workflow": None,  "active_appointment": updated_appointment}
         
         else:

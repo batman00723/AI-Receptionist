@@ -1,4 +1,4 @@
-from .nodes import router_node, faq_node, booking_node, emergency_node, refusal_node, check_availabiity_node, routing_logic, booking_followup_node, booking_validate_node, booking_validation_router, cancel_booking_node, show_booking_node, check_reschedule_availabiity_node, reschedule_followup_node, reschedule_node, reschedule_validate_node, reschedule_validation_router, reschedule_router
+from .nodes import router_node, faq_node, booking_node, emergency_node, refusal_node, check_availabiity_node, routing_logic, booking_followup_node, booking_validate_node, booking_validation_router, cancel_booking_node, show_booking_node, check_reschedule_availabiity_node, reschedule_followup_node, reschedule_node, reschedule_validate_node, reschedule_validation_router
 from langgraph.graph import StateGraph, END
 from functools import partial
 from .state import ReceptionistState
@@ -54,7 +54,6 @@ def create_receptionist_agent(llm):
     )
     workflow.add_edge("appointment_manager", "booking_validation")
 
-
     workflow.add_conditional_edges(
         "booking_validation",
         booking_validation_router,
@@ -66,14 +65,8 @@ def create_receptionist_agent(llm):
     )
 
 
-    workflow.add_conditional_edges(
-        "reschedule_booking",
-        reschedule_router,
-        {
-            "validate": "reschedule_validation",
-            "end": END
-        }
-    )
+    workflow.add_edge("reschedule_booking", "reschedule_validation")
+
     workflow.add_conditional_edges(
         "reschedule_validation",
         reschedule_validation_router,
