@@ -1,12 +1,11 @@
-from myapi.rag_pipeline.llm import LLMService
 from pydantic import BaseModel, Field
 from .state import ReceptionistState
 from backend.config import settings
-from myapi.rag_pipeline.llm import LLMService
+from myapi.rag_pipeline.llm import ChatLLMService, RoutingLLMService
 from langgraph.graph import END
 from myapi.rag_pipeline.embedding import EmbeddingService
 from myapi.rag_pipeline.retrieval_Service import HybridRetrievalRerankService
-from langchain_core.messages import SystemMessage, HumanMessage, trim_messages, ToolMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, trim_messages, AIMessage
 from typing import Optional
 from myapi.agent.cal_service import CalService      
 from myapi.agent.email_service import send_emergency_alert, send_cancellation_alert
@@ -15,6 +14,9 @@ from datetime import datetime
 import pytz
 import dateparser
 from myapi.models import Patient, Appointment
+from .utc_2_ist import utc_to_ist
+from myapi.rag_pipeline.semantic_cache import save_to_db, semantic_cache_search
+
 
 class RouteResponse(BaseModel):
     intent: Literal[ "booking", "cancel", "show_booking", "faq", "emergency", "nonsense", "reschedule", "completed"] = Field(
@@ -31,6 +33,12 @@ trimmer= trim_messages(
     include_system=False,
     start_on="human",
 )
+
+route_llm= RoutingLLMService()
+chatllm = ChatLLMService()
+embedder = EmbeddingService()
+hybrid_retrieval= HybridRetrievalRerankService()
+
 
 def router_node(state: ReceptionistState):
     message_history= trimmer.invoke(state["messages"])
@@ -122,7 +130,7 @@ def router_node(state: ReceptionistState):
         - unclear meaning
         - abusive message without actionable intent
         - confidence is low
-
+ 
         Examples:
         - "hi"
         - "lol"
@@ -135,6 +143,13 @@ def router_node(state: ReceptionistState):
         - user wants to cancel their existing appointment
         - user explicitly says to cancel their booking.
         - user says to cancel booking
+        - user says to cancel booking, appointment
+
+        Examples:
+        - "Cancel my appointment"
+        - "Cancel my current booking"
+        - "Cancel my current appointment"
+        - "Cancel it"
 
         6. reschedule
         Use if:
@@ -168,12 +183,13 @@ def router_node(state: ReceptionistState):
     """
     
     message_for_llm= [SystemMessage(content= system_instruction)] + message_history
+
     if not message_history or message_history[-1].content != query:
         message_for_llm.append(HumanMessage(content=f"User's current request: {query}"))
 
 
     try:
-        structured_llm = llm.model.with_structured_output(RouteResponse)
+        structured_llm = route_llm.model.with_structured_output(RouteResponse)
         response = structured_llm.invoke(message_for_llm)
         intent = response.intent
         print(intent)
@@ -209,22 +225,31 @@ def routing_logic(state: ReceptionistState):
         return "refusal_node"
 
 
-llm = LLMService()
-embedder = EmbeddingService()
-hybrid_retrieval= HybridRetrievalRerankService()
-
-
 def faq_node(state: ReceptionistState):
     print("FAQ Node Activated")
     
     current_intent= state["intent"]
     print(current_intent)
+    
     query= state["query"]
 
     query_vector= embedder.get_embedding(query)
 
-    top_chunks= hybrid_retrieval.get_hybrid_reranked_content(query= query, query_vector= query_vector)
+    cached = semantic_cache_search(query_vector)
+    CACHE_THRESHOLD = 0.05
+    if cached and cached.distance < CACHE_THRESHOLD:
+        print("SEMANTIC CACHE HIT")
+        print(f"Distance: {cached.distance}")
 
+        return {
+            "messages": [AIMessage(content=cached.response)],
+            "clinic_response": cached.response
+        }
+
+    print("SEMANTIC CACHE MISS")
+
+
+    top_chunks= hybrid_retrieval.get_hybrid_reranked_content(query= query, query_vector= query_vector)
 
     content_chunks = "\n\n".join([c.chunk for c in top_chunks])
 
@@ -234,6 +259,8 @@ def faq_node(state: ReceptionistState):
         Your job is to:
         - Answer clinic-related questions
         - Assist with basic dental service information
+                                  
+        Keep answers under 80 words unless the user explicitly asks for more detail.
 
         Your tone should be:
         - Professional
@@ -241,10 +268,7 @@ def faq_node(state: ReceptionistState):
         - Reassuring
         - Concise
         
-        Answer in 1–2 short sentences maximum. Be blunt and direct.
-
-        Do not sound overly robotic or overly casual.
-        Do NOT attempt medical diagnosis.
+        Be direct and sound like human.
 
         # KNOWLEDGE BASE
         You have access to the Caps and Crowns Dental Clinic knowledge base.
@@ -269,10 +293,14 @@ def faq_node(state: ReceptionistState):
         - do not guess
         - do not hallucinate
         - politely say I don't know
-                                  
+
+        Use the context only as a source of facts.
+        Do not copy phrases directly from the context unless necessary.
+        Rewrite answers naturally for a patient chatting on WhatsApp.
     
-        Before ending the conversation ask:
-        "Is there anything else I can help you with today?"
+        "Before ending the conversation ask a followup question if there is need for it."
+        Only ask a follow-up question when appropriate.
+                                                            
         If no:
         "Thank you for choosing Caps and Crowns Dental Clinic. Have a wonderful day!"
     
@@ -286,7 +314,11 @@ def faq_node(state: ReceptionistState):
         """
         )
     
-    response= llm.invoke([system_prompt]).content
+    response= chatllm.invoke([system_prompt]).content
+
+    save_to_db(query= query,
+               query_embedding= query_vector,
+               response= response)
     
     return{
         "messages": [AIMessage(content= response)],
@@ -336,7 +368,7 @@ def booking_node(state: ReceptionistState):
     current_booking = state.get("booking_data") or {}
     query = state["query"]
 
-    structured_llm = llm.model.with_structured_output(
+    structured_llm = route_llm.model.with_structured_output(
         BookingExtraction
 
     )
@@ -607,8 +639,10 @@ def check_availabiity_node(state: ReceptionistState):
                      }}
         
         else:
+            available_ist_slots = [utc_to_ist(slot["time"]) for slot in available_slots]
+            
             # MVP Naive fail message will change it later and add neaerest slots available instead of hard slots
-            fail_message = f"This time slot is not available. Try these slots: {available_slots}"
+            fail_message = f"This time slot is not available. Try these slots: {', '.join(available_ist_slots)}"
             return {"clinic_response": fail_message, "intent": "booking", "active_workflow": "booking"}
     except Exception as e:
         # If api is down then manual entry by human receptionist.
@@ -762,7 +796,7 @@ def reschedule_node(state: ReceptionistState):
     rescheduled_booking = state.get("reschedule_data") or {}
     query = state["query"]
 
-    structured_llm = llm.model.with_structured_output(
+    structured_llm = route_llm.model.with_structured_output(
         RescheduleExtraction
     )
 

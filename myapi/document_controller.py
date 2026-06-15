@@ -5,26 +5,19 @@ from .schemas import DocumentIn, DocumentOut
 from myapi.rag_pipeline.docs_processing import document_processing
 from .models import Document, DocumentChunk
 from myapi.rag_pipeline.docs_processing import document_processing
-from myapi.rag_pipeline.llm import LLMService
 from myapi.rag_pipeline.embedding import EmbeddingService
 from myapi.rag_pipeline.file_type_validator import detect_file_type
 from backend.config import settings
-from pgvector.django import CosineDistance
 from myapi.rag_pipeline.retrieval_Service import HybridRetrievalRerankService
 from myapi.agent.graph import create_receptionist_agent
 import logging
 from langchain_core.messages import HumanMessage
 from twilio.twiml.messaging_response import MessagingResponse
 from django.http import HttpResponse
-from myapi.models import Document, DeletedDocument
 from .archive_and_delete import archive_and_delete_document
 
 
-
-llm= LLMService()
-
-receptionist_agent= create_receptionist_agent(llm= llm)
-
+receptionist_agent= create_receptionist_agent()
 embedder= EmbeddingService()
 hybrid_retrieval= HybridRetrievalRerankService()
 

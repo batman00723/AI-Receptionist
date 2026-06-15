@@ -6,7 +6,7 @@ class RagPipeline:
     def __init__(self):
         self.splitter= RecursiveCharacterTextSplitter(
             chunk_size= 300,
-            chunk_overlap= 50,
+            chunk_overlap= 100,
             separators= ["\n\n", "\n", " ", ""]
         )
 

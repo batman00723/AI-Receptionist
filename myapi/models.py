@@ -46,6 +46,13 @@ class DocumentChunk(models.Model):
             GinIndex(fields=['search_vector'])
         ]
 
+class SemanticCache(models.Model):
+    query = models.TextField()
+    response = models.TextField()
+    embedding = VectorField(dimensions=768)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 
 class Patient(models.Model):
     phone = models.CharField(max_length=30, unique=True)

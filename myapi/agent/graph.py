@@ -19,7 +19,7 @@ _pool = ConnectionPool(
 memory = PostgresSaver(_pool)
 memory.setup()
 
-def create_receptionist_agent(llm):
+def create_receptionist_agent():
     workflow= StateGraph(ReceptionistState)
 
     workflow.add_node("router", router_node)
