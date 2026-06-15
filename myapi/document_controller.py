@@ -38,6 +38,8 @@ class TwilioWebHookController(ControllerBase):
         incoming_msg= request.POST.get("Body")
 
         phone= request.POST.get("From")
+        if phone.startswith("whatsapp:"):
+            phone = phone.replace("whatsapp:", "")
 
         print("Whatsapp Message:", incoming_msg)
         print("Phone:", phone)
