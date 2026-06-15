@@ -17,9 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from myapi.api import api_v1
+from myapi.views import dashboard
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("api_v1/", api_v1.urls)
+    path("api_v1/", api_v1.urls),
+    path("dashboard/", dashboard)
 ]
 

@@ -101,8 +101,8 @@ class DocumentOperationController(ControllerBase):
             
         return document
     
-    @http_delete("/delete")
-    def delete_document(request, document_id):
+    @http_delete("/delete/{document_id}")
+    def delete_document(self, request, document_id: int):
 
         document = Document.objects.get(id=document_id)
         archive_and_delete_document(document)
@@ -110,6 +110,36 @@ class DocumentOperationController(ControllerBase):
         return {
             "message": "Document deleted successfully"
         }
+    
+    # For frontend for total docs and total chunks
+    @http_get("/stats")
+    def document_stats(self, request):
+
+        total_docs = Document.objects.count()
+
+        total_chunks = DocumentChunk.objects.count()
+
+        return {
+            "documents": total_docs,
+            "chunks": total_chunks
+        }
+    
+    # this is for front end to display all docs 
+    @http_get("/")
+    def get_documents(self, request):
+
+        docs = Document.objects.all().order_by("-uploaded_at")
+
+        return [
+            {
+                "id": doc.id,
+                "doc_name": doc.doc_name,
+                "status": doc.status,
+                "file_type": doc.file_type,
+                "uploaded_at": doc.uploaded_at
+            }
+            for doc in docs
+        ]
     
     
     @http_get("/status")

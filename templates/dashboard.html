@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Receptionist Dashboard</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Inter,Segoe UI,sans-serif;
+}
+
+body{
+    min-height:100vh;
+    background:
+    linear-gradient(
+        135deg,
+        #0f172a,
+        #172554,
+        #0f172a
+    );
+
+    color:white;
+    padding:40px;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+
+.hero{
+    margin-bottom:30px;
+}
+
+.hero h1{
+    font-size:3rem;
+    margin-bottom:10px;
+}
+
+.hero p{
+    color:#cbd5e1;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+    margin-bottom:30px;
+}
+
+.card{
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:20px;
+    padding:18px;
+}
+
+.stat-title{
+    color:#cbd5e1;
+}
+
+.stat-value{
+    font-size:2rem;
+    font-weight:700;
+    margin-top:8px;
+}
+
+.upload-card{
+    margin-bottom:30px;
+}
+
+.upload-card h2{
+    margin-bottom:20px;
+}
+
+.dropzone{
+
+    border:2px dashed rgba(255,255,255,.25);
+
+    border-radius:18px;
+
+    min-height:180px;
+
+    display:flex;
+    flex-direction:column;
+
+    justify-content:center;
+    align-items:center;
+
+    text-align:center;
+
+    margin-bottom:20px;
+
+    cursor:pointer;
+
+    transition:.3s;
+}
+
+.dropzone:hover{
+    border-color:#3b82f6;
+}
+
+.dropzone.dragover{
+    border-color:#60a5fa;
+    background:rgba(59,130,246,.1);
+}
+
+.dropzone-icon{
+    font-size:48px;
+    margin-bottom:10px;
+}
+
+.dropzone p{
+    color:#cbd5e1;
+}
+
+input[type=text]{
+    width:100%;
+    padding:15px;
+    margin-bottom:15px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:rgba(255,255,255,.1);
+
+    color:white;
+}
+
+input[type=file]{
+    display:none;
+}
+
+.upload-btn{
+    background:#2563eb;
+    color:white;
+
+    border:none;
+
+    padding:14px 22px;
+
+    border-radius:12px;
+
+    cursor:pointer;
+
+    font-weight:600;
+}
+
+.upload-btn:hover{
+    background:#1d4ed8;
+}
+
+.upload-btn:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
+
+.documents-card h2{
+    margin-bottom:20px;
+}
+
+.documents{
+    display:grid;
+    gap:15px;
+}
+
+.document-card{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    background:rgba(255,255,255,.05);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    border-radius:16px;
+
+    padding:16px;
+}
+
+.doc-left{
+    display:flex;
+    gap:15px;
+    align-items:center;
+}
+
+.file-icon{
+    font-size:28px;
+}
+
+.doc-meta p{
+    color:#cbd5e1;
+    margin-top:4px;
+}
+
+.doc-right{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.status{
+    padding:7px 12px;
+    border-radius:999px;
+    font-size:.8rem;
+    font-weight:bold;
+}
+
+.ready{
+    background:rgba(34,197,94,.2);
+    color:#22c55e;
+}
+
+.processing{
+    background:rgba(234,179,8,.2);
+    color:#eab308;
+}
+
+.failed{
+    background:rgba(239,68,68,.2);
+    color:#ef4444;
+}
+
+.delete-btn{
+    background:#dc2626;
+    color:white;
+
+    border:none;
+
+    padding:10px 14px;
+
+    border-radius:10px;
+
+    cursor:pointer;
+}
+
+.delete-btn:hover{
+    background:#b91c1c;
+}
+
+.empty-state{
+    text-align:center;
+    padding:50px;
+}
+
+.empty-state .icon{
+    font-size:64px;
+    margin-bottom:10px;
+}
+
+.empty-state p{
+    color:#cbd5e1;
+}
+
+.spinner{
+    width:20px;
+    height:20px;
+
+    border:3px solid rgba(255,255,255,.2);
+    border-top:3px solid white;
+
+    border-radius:50%;
+
+    animation:spin 1s linear infinite;
+
+    display:inline-block;
+}
+
+@keyframes spin{
+    100%{
+        transform:rotate(360deg);
+    }
+}
+
+.toast{
+
+    position:fixed;
+
+    right:20px;
+    top:20px;
+
+    background:#22c55e;
+
+    color:white;
+
+    padding:15px 20px;
+
+    border-radius:10px;
+
+    opacity:0;
+
+    transition:.3s;
+}
+
+.toast.show{
+    opacity:1;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="hero">
+        <h1>AI Receptionist Dashboard</h1>
+        <p>Manage clinic knowledge base documents</p>
+    </div>
+
+    <div class="stats">
+
+        <div class="card">
+            <div class="stat-title">Total Documents</div>
+            <div class="stat-value" id="documentsCount">0</div>
+        </div>
+
+        <div class="card">
+            <div class="stat-title">Total Chunks</div>
+            <div class="stat-value" id="chunksCount">0</div>
+        </div>
+
+    </div>
+
+    <div class="card upload-card">
+
+        <h2>Upload Knowledge Base</h2>
+
+        <input
+            type="text"
+            id="docName"
+            placeholder="Document Name"
+        >
+
+        <div
+            class="dropzone"
+            id="dropzone"
+        >
+            <div class="dropzone-icon">📄</div>
+
+            <h3>Drop files here</h3>
+
+            <p>PDF • DOCX • TXT</p>
+
+            <br>
+
+            <button
+                type="button"
+                class="upload-btn"
+                onclick="document.getElementById('fileInput').click()"
+            >
+                Browse Files
+            </button>
+
+            <input
+                type="file"
+                id="fileInput"
+            >
+        </div>
+
+        <button
+            class="upload-btn"
+            id="uploadButton"
+            onclick="uploadDocument()"
+        >
+            Upload Document
+        </button>
+
+    </div>
+
+    <div class="card documents-card">
+
+        <h2>Documents</h2>
+
+        <div
+            id="documentsContainer"
+            class="documents"
+        >
+        </div>
+
+    </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+
+const API_BASE = "/api_v1/documents";
+
+const fileInput =
+document.getElementById("fileInput");
+
+const dropzone =
+document.getElementById("dropzone");
+
+dropzone.addEventListener("dragover", e=>{
+    e.preventDefault();
+    dropzone.classList.add("dragover");
+});
+
+dropzone.addEventListener("dragleave", ()=>{
+    dropzone.classList.remove("dragover");
+});
+
+dropzone.addEventListener("drop", e=>{
+
+    e.preventDefault();
+
+    dropzone.classList.remove("dragover");
+
+    fileInput.files =
+    e.dataTransfer.files;
+});
+
+function showToast(message){
+
+    const toast =
+    document.getElementById("toast");
+
+    toast.innerText =
+    message;
+
+    toast.classList.add("show");
+
+    setTimeout(()=>{
+        toast.classList.remove("show");
+    },3000);
+}
+
+async function loadStats(){
+
+    const response =
+    await fetch(`${API_BASE}/stats`);
+
+    const data =
+    await response.json();
+
+    document.getElementById("documentsCount").innerText =
+    data.documents || 0;
+
+    document.getElementById("chunksCount").innerText =
+    data.chunks || 0;
+}
+
+async function loadDocuments(){
+
+    const response =
+    await fetch(`${API_BASE}/`);
+
+    const docs =
+    await response.json();
+
+    const container =
+    document.getElementById("documentsContainer");
+
+    container.innerHTML = "";
+
+    if(docs.length === 0){
+
+        container.innerHTML = `
+        <div class="empty-state">
+            <div class="icon">📄</div>
+            <h3>No Documents Uploaded</h3>
+            <p>Upload your first clinic document.</p>
+        </div>
+        `;
+
+        return;
+    }
+
+    docs.forEach(doc=>{
+
+        const statusClass =
+        doc.status === "PROCESSING"
+        ? "processing"
+        : "ready";
+
+        container.innerHTML += `
+        <div class="document-card">
+
+            <div class="doc-left">
+
+                <div class="file-icon">
+                    📄
+                </div>
+
+                <div class="doc-meta">
+
+                    <h3>${doc.doc_name}</h3>
+
+                    <p>
+                        ${doc.file_type}
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="doc-right">
+
+                <span class="status ${statusClass}">
+                    ${doc.status}
+                </span>
+
+                <button
+                    class="delete-btn"
+                    onclick="deleteDocument(${doc.id})"
+                >
+                    Delete
+                </button>
+
+            </div>
+
+        </div>
+        `;
+    });
+}
+
+async function uploadDocument(){
+
+    const file =
+    fileInput.files[0];
+
+    const docName =
+    document.getElementById("docName").value;
+
+    if(!file || !docName){
+
+        showToast(
+            "Document name and file required"
+        );
+
+        return;
+    }
+
+    const btn =
+    document.getElementById("uploadButton");
+
+    btn.disabled = true;
+
+    btn.innerHTML =
+    `<span class="spinner"></span> Uploading`;
+
+    const formData =
+    new FormData();
+
+    formData.append(
+        "doc_name",
+        docName
+    );
+
+    formData.append(
+        "docs",
+        file
+    );
+
+    try{
+
+        await fetch(
+            `${API_BASE}/`,
+            {
+                method:"POST",
+                body:formData
+            }
+        );
+
+        showToast(
+            "Document uploaded successfully"
+        );
+
+        document.getElementById("docName").value="";
+
+        fileInput.value="";
+
+        loadDocuments();
+        loadStats();
+
+    }catch(err){
+
+        showToast(
+            "Upload failed"
+        );
+    }
+
+    btn.disabled = false;
+
+    btn.innerHTML =
+    "Upload Document";
+}
+
+async function deleteDocument(id){
+
+    if(
+        !confirm(
+            "Delete this document?"
+        )
+    ){
+        return;
+    }
+
+    await fetch(
+        `${API_BASE}/delete/${id}`,
+        {
+            method:"DELETE"
+        }
+    );
+
+    showToast(
+        "Document deleted"
+    );
+
+    loadDocuments();
+    loadStats();
+}
+
+loadDocuments();
+loadStats();
+
+</script>
+
+</body>
+</html>
