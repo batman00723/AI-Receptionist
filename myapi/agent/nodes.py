@@ -630,7 +630,7 @@ def check_availabiity_node(state: ReceptionistState):
                 status="scheduled"
             )
 
-            return {"clinic_response": final_message, "intent": "completed", "booking_data": {}, "missing_booking_fields": [], "active_workflow": None,  "active_appointment": {
+            return {"clinic_response": final_message, "intent": "completed", "booking_data": None, "missing_booking_fields": [], "active_workflow": None,  "active_appointment": {
                     "booking_uid": booking_response["data"]["uid"],
                     "booking_id": booking_response["data"]["id"],
                     "date": booking["date"],
@@ -671,7 +671,6 @@ def emergency_node(state: ReceptionistState):
     }
 
 
-
 def cancel_booking_node(state: ReceptionistState):
     print("Entered Cancel Booking Node" \
     "")
@@ -702,7 +701,7 @@ def cancel_booking_node(state: ReceptionistState):
                 AIMessage(content=response)
             ],
             "active_appointment": {},
-            "booking_data": {},
+            "booking_data": None,
             "active_workflow": None,
             "intent": "completed"
         }
@@ -1063,7 +1062,7 @@ def check_reschedule_availabiity_node(state: ReceptionistState):
                 time=reschedule["time"]
             )
 
-            return {"clinic_response": final_message, "intent": "completed", "reschedule_data": {}, "missing_reschedule_fields": [], "active_workflow": None,  "active_appointment": updated_appointment}
+            return {"clinic_response": final_message, "intent": "completed", "reschedule_data": None, "missing_reschedule_fields": [], "active_workflow": None,  "active_appointment": updated_appointment}
         
         else:
             # MVP Naive fail message will change it later and add neaerest slots available instead of hard slots

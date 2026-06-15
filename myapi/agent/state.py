@@ -4,6 +4,8 @@ from langchain_core.messages import BaseMessage
 
 def merge_dict(existing: dict, new: dict) -> dict:
     """Only updates keys that are actually provided."""
+    if new is None:
+        return None
     updated = existing.copy()
     updated.update({k: v for k, v in new.items() if v is not None})
     return updated
