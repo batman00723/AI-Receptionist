@@ -27,7 +27,7 @@ SECRET_KEY = settings.secret_key.get_secret_value()
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = settings.debug
 
-ALLOWED_HOSTS = [".up.railway.app", '127.0.0.1', 'escapist-baked-fancied.ngrok-free.dev']
+ALLOWED_HOSTS = [".up.railway.app", '127.0.0.1', 'escapist-baked-fancied.ngrok-free.dev', "ai-receptionist-e48c.onrender.com"]
 
 
 # Application definition

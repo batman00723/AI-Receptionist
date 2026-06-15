@@ -1,5 +1,4 @@
 from backend.config import settings
-from langchain_cerebras import ChatCerebras
 from langchain_groq import ChatGroq
 import logging
 
