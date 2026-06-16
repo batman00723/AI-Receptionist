@@ -69,6 +69,7 @@ def router_node(state: ReceptionistState):
         - faq
         - emergency
         - nonsense
+        - reschedule
         - cancel
         - show_booking
 
@@ -76,7 +77,7 @@ def router_node(state: ReceptionistState):
         Use BOTH:
         1. latest user message
         2. recent conversation context
-
+        
         ROUTING RULES:
 
         1. booking
@@ -109,6 +110,7 @@ def router_node(state: ReceptionistState):
 
         3. faq
         Use for:
+        - if someone greets
         - insurance
         - pricing
         - clinic timings
@@ -117,6 +119,8 @@ def router_node(state: ReceptionistState):
         - location
         - dental questions
         - services offered
+        - asking about dental questions
+        - asking about the clinic, any question realted to clinic
 
         Examples:
         - "Do you offer root canal?"
@@ -125,17 +129,18 @@ def router_node(state: ReceptionistState):
 
         4. nonsense
         Use if:
-        - greeting only
         - random/off-topic message
         - unclear meaning
         - abusive message without actionable intent
         - confidence is low
  
         Examples:
-        - "hi"
-        - "lol"
-        - "are you dead"
-        - "what's up"
+        - madarchod
+        - betichod
+        - tum chutiya ho
+        - Who won the IPL?
+        - Write me a poem.
+        - What's the capital of France?
 
         5. cancel
         Use if:
@@ -260,7 +265,7 @@ def faq_node(state: ReceptionistState):
         - Answer clinic-related questions
         - Assist with basic dental service information
                                   
-        Keep answers under 80 words unless the user explicitly asks for more detail.
+        Keep answers under 100 words unless the user explicitly asks for more detail.
 
         Your tone should be:
         - Professional
@@ -268,7 +273,9 @@ def faq_node(state: ReceptionistState):
         - Reassuring
         - Concise
         
-        Be direct and sound like human.
+        Speak like a friendly dental receptionist chatting with a patient on WhatsApp.
+        Use natural conversational language.
+        Avoid sounding like a textbook, FAQ page, or medical article.
 
         # KNOWLEDGE BASE
         You have access to the Caps and Crowns Dental Clinic knowledge base.
@@ -292,7 +299,9 @@ def faq_node(state: ReceptionistState):
         If information is unavailable:
         - do not guess
         - do not hallucinate
-        - politely say I don't know
+        - politely say I don't know                                  
+        
+        If user greets, greet back nicely and be chatty and don't sound robotic. 
 
         Use the context only as a source of facts.
         Do not copy phrases directly from the context unless necessary.
@@ -330,9 +339,7 @@ def faq_node(state: ReceptionistState):
 def refusal_node(state: ReceptionistState):
     print("Refusal Node Activated")
     response = (
-        "I'm sorry, I'm not quite sure how to help with that. "
-        "I can help you book an appointment, check our location, or answer dental questions. "
-        "What can I do for you?"
+        "I'm not sure I can help with that. I can assist with appointments, our clinic information, or dental-related questions.😊"
     )
     
     return {
@@ -614,7 +621,7 @@ def check_availabiity_node(state: ReceptionistState):
 
         if is_available:
             booking_response= cal.create_booking(booking, {"phone": state.get("user_phone", "000000")})
-            final_message= f"Done! Your booking is officially confirmed for {booking['time']} on {booking['date']}. See you then!"
+            final_message= f"You are all set! Your appointment with Dr. Mishra has been booked for {booking['time']} on {booking['date']} 🎉. We are looking forward to seeing you!"
             print(f"Booking Response: {booking_response}")
 
             
@@ -631,27 +638,27 @@ def check_availabiity_node(state: ReceptionistState):
             )
 
             return {"clinic_response": final_message, "intent": "completed", "booking_data": None, "missing_booking_fields": [], "active_workflow": None,  "active_appointment": {
-                    "booking_uid": booking_response["data"]["uid"],
-                    "booking_id": booking_response["data"]["id"],
-                    "date": booking["date"],
-                    "time": booking["time"],
-                    "service": booking["service"]
-                     }}
+
+                                                                                                                                                            "booking_uid": booking_response["data"]["uid"],
+                                                                                                                                                            "booking_id": booking_response["data"]["id"],
+                                                                                                                                                            "date": booking["date"],
+                                                                                                                                                            "time": booking["time"],
+                                                                                                                                                            "service": booking["service"]
+                                                                                                                                                            }}
         
         else:
             available_ist_slots = [utc_to_ist(slot["time"]) for slot in available_slots]
             
             # MVP Naive fail message will change it later and add neaerest slots available instead of hard slots
-            fail_message = f"This time slot is not available. Try these slots: {', '.join(available_ist_slots)}"
+            fail_message = f"Unfortunately 😔! This exact time slot is not available, By the way these slots are available try these instead: {', '.join(available_ist_slots)}"
             return {"clinic_response": fail_message, "intent": "booking", "active_workflow": "booking"}
     except Exception as e:
         # If api is down then manual entry by human receptionist.
-        error_message= "There is technical glitch, but I have informed your booking details to my supervisor he will handle and send you conformation messge soon.."
+        error_message= "There is technical glitch, but don't worry I have informed your booking details to my supervisor he will handle and send you conformation messge soon.."
         print(e)
         return {"clinic_response": error_message, "intent": "emergency", "active_workflow": None}
     
 
-# For MVP only email service later will more channel alerts.
 def emergency_node(state: ReceptionistState):
     phone= state.get("user_phone", "No Phone provided")
     issue= state.get("query", "No issue provided")
@@ -662,7 +669,7 @@ def emergency_node(state: ReceptionistState):
     emergency_message= (
         "I have notified an urgent alert to my Supervisor they will handle this critical situation." \
         "They will call you immediately. If it is life threatning," \
-        "Please call 911 or go to nearest emergency room now."
+        "Please call your local emergency services.🚨"
     )
 
     return {
@@ -678,7 +685,7 @@ def cancel_booking_node(state: ReceptionistState):
     print(f"Active Appointment: {appointment}")
     
     if not appointment:
-        response= ( "I couldn't find any active appointment to cancel")
+        response= ( "I'm Sorry 😔, I couldn't find any of your active appointment to cancel")
         
         return {"clinic_response": response, "messages": [AIMessage(content= response)]}
     
@@ -693,7 +700,7 @@ def cancel_booking_node(state: ReceptionistState):
         # Update Appointment table 
         Appointment.objects.filter(booking_uid=appointment["booking_uid"]).update(status="cancelled")
 
-        response= f"Your appointment on {appointment['date']} at {appointment['time']} has been cancelled."
+        response= f"Your appointment on {appointment['date']} at {appointment['time']} has been cancelled successfully."
 
         return{
             "clinic_response": response,
@@ -714,7 +721,7 @@ def cancel_booking_node(state: ReceptionistState):
                 patient_issue= appointment
             )
 
-            response= "There is a techincal glitch, I have send your cancellation request to my supervisor."
+            response= "There is a techincal glitch, I have send your cancellation request to my supervisor. Don't worry he will handle it now."
 
 
             return {
@@ -742,7 +749,7 @@ def show_booking_node(state: ReceptionistState):
 
     if not appointment:
         response = (
-            "I couldn't find any active appointment."
+            "Seems like you don't have any active appointments to show."
         )
         return {
             "clinic_response": response,
@@ -753,7 +760,8 @@ def show_booking_node(state: ReceptionistState):
         f"You have an appointment scheduled on "
         f"{appointment['date']} at "
         f"{appointment['time']} for "
-        f"{appointment['service']}."
+        f"{appointment['service']}"
+        f"See you there."
     )
     return {
         "clinic_response": response,
@@ -777,7 +785,7 @@ class RescheduleExtraction(BaseModel):
 def reschedule_node(state: ReceptionistState):
     appointment = state.get("active_appointment")
     if not appointment:
-        response= "You don't have any appointment scheduled to reschedule."
+        response= "Seems like you don't have any appointment scheduled to reschedule."
         return {
             "clinic_response": response,
             "messages": [AIMessage(content=response)],
@@ -1026,7 +1034,7 @@ def check_reschedule_availabiity_node(state: ReceptionistState):
             reschedule_response= cal.reschedule_booking(booking_uid= active_appointment["booking_uid"],
                                                         new_utc_time= reschedule["utc_time"])
             print(reschedule_response)
-            final_message= f"Done! Your rescheduled booking is officially confirmed for {reschedule['time']} on {reschedule['date']}. See you then!"
+            final_message= f"You are all set! Your appointment with Dr. Mishra has been rescheduled to {reschedule['time']} on {reschedule['date']} 🎉. See you then!"
             print(f"Booking Response: {reschedule_response}")
 
             print("OLD APPOINTMENT")
@@ -1065,8 +1073,8 @@ def check_reschedule_availabiity_node(state: ReceptionistState):
             return {"clinic_response": final_message, "intent": "completed", "reschedule_data": None, "missing_reschedule_fields": [], "active_workflow": None,  "active_appointment": updated_appointment}
         
         else:
-            # MVP Naive fail message will change it later and add neaerest slots available instead of hard slots
-            fail_message = f"This time slot is not available. Try these slots: {available_slots}"
+            available_ist_slots = [utc_to_ist(slot["time"]) for slot in available_slots]
+            fail_message = f"Unfortunately 😔! This exact time slot is not available, By the way these slots are available try these instead: {', '.join(available_ist_slots)}"
             return {"clinic_response": fail_message, "intent": "reschedule", "active_workflow": "reschedule"}
     except Exception as e:
         # If api is down then manual entry by human receptionist.
