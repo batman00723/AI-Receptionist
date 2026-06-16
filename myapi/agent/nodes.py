@@ -210,8 +210,6 @@ def router_node(state: ReceptionistState):
         "query": query
     }
 
-
-
 def routing_logic(state: ReceptionistState):
     intent= state["intent"]
     if intent == "emergency":
@@ -366,7 +364,6 @@ class BookingExtraction(BaseModel):
     )
 
 
-
 def booking_node(state: ReceptionistState):
 
     tz_ist = pytz.timezone("Asia/Kolkata")
@@ -464,12 +461,9 @@ def booking_node(state: ReceptionistState):
 
         Return ONLY valid JSON.
 
-        Example:
-        {{
-        "date_phrase": null,
-        "time_phrase": "2 pm",
-        "service": "root canal"
-        }}
+        Do not infer any booking details on your own unless user provides it.
+        If user gives wrong spelling of week days for example Frday so make it Friday.
+        Only use you intelligence to make spellings correct for date time and service names for dental clinic.
     """
 
     extraction = structured_llm.invoke(system_prompt)
@@ -700,7 +694,7 @@ def cancel_booking_node(state: ReceptionistState):
         # Update Appointment table 
         Appointment.objects.filter(booking_uid=appointment["booking_uid"]).update(status="cancelled")
 
-        response= f"Your appointment on {appointment['date']} at {appointment['time']} has been cancelled successfully."
+        response= f"Your appointment on {appointment['date']} at {appointment['time']} has been cancelled successfully.😊"
 
         return{
             "clinic_response": response,
@@ -721,7 +715,7 @@ def cancel_booking_node(state: ReceptionistState):
                 patient_issue= appointment
             )
 
-            response= "There is a techincal glitch, I have send your cancellation request to my supervisor. Don't worry he will handle it now."
+            response= "Looks like there is a techincal glitch, I have send your cancellation request to my supervisor. Don't worry he will handle it now."
 
 
             return {
@@ -769,7 +763,6 @@ def show_booking_node(state: ReceptionistState):
         }
 
 
-
 class RescheduleExtraction(BaseModel):
     date_phrase: Optional[str] = Field(
         default= None,
@@ -779,7 +772,6 @@ class RescheduleExtraction(BaseModel):
         default= None,
         description= "Raw time phrase as exactly as user said it. Example: 2pm, 10:30 pm"
     )
-
 
 
 def reschedule_node(state: ReceptionistState):
@@ -880,13 +872,12 @@ def reschedule_node(state: ReceptionistState):
         USER MESSAGE:
         {query}
 
-        Return ONLY valid JSON.
+        Return only valid JSON
 
-        Example:
-        {{
-        "date_phrase": null,
-        "time_phrase": "2 pm"
-        }}
+        Do not infer any booking details on your own unless user provides it.
+        If user gives wrong spelling of week days for example Frday so make it Friday.
+        Only use you intelligence to make spellings correct for date time.
+
     """
 
     extraction = structured_llm.invoke(system_prompt)
@@ -1081,3 +1072,14 @@ def check_reschedule_availabiity_node(state: ReceptionistState):
         error_message= "There is technical glitch, but I have informed your reschedule booking details to my supervisor he will handle and send you conformation messge soon.."
         print(e)
         return {"clinic_response": error_message, "intent": "emergency", "active_workflow": None}
+    
+
+
+# Future bug Solve Problem
+
+# if i say to reschedule my appointment without having any booking, so as i added if
+# no active appointments then hardcoded response. but in the langgraph workflow it had
+# nodes flowing forward so it goes further too. I have same setup of if no active appointment 
+# then give hardcoded response "You don't have any  booking to get cancelled." so in cancel node
+# i didnt had any nodes further as after cancel node workflow ended and in reschedule workflow continued 
+# I will add a conditional router before reschedule workflow even starts if there is no acti
