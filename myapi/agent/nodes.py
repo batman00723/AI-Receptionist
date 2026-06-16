@@ -26,8 +26,8 @@ class RouteResponse(BaseModel):
     #     description="A score between 0.0 and 1.0 reflecting how sure you are of this intent."
     # )
 
-trimmer= trim_messages(
-    max_tokens= 500,
+trimmer_for_router= trim_messages(
+    max_tokens= 100,
     strategy="last",
     token_counter=len,
     include_system=False,
@@ -41,7 +41,10 @@ hybrid_retrieval= HybridRetrievalRerankService()
 
 
 def router_node(state: ReceptionistState):
-    message_history= trimmer.invoke(state["messages"])
+    message_history= trimmer_for_router.invoke(state["messages"])
+    # As message_history is a list of LangChain message objects so removing AIMessage ToolMessage content= xyz
+    history_text = "\n".join(f"{msg.type}: {msg.content}" for msg in message_history)
+    
     query= state["query"]
 
 
@@ -59,7 +62,7 @@ def router_node(state: ReceptionistState):
             "query": query
         }
     
-    system_instruction = """
+    system_instruction = f"""
         You are a strict intent classification router for a dental clinic AI system.
 
         Your job is ONLY to classify the user's latest message into ONE category.
@@ -168,7 +171,7 @@ def router_node(state: ReceptionistState):
         - change my booking
         - can I come next Friday instead
 
-        7. show_boooking
+        7. show_booking
         Use if user wants to:
         - view appointment
         - check appointment
@@ -184,6 +187,8 @@ def router_node(state: ReceptionistState):
         - Single-word replies like "Friday" or "2 pm" are booking ONLY if conversation context indicates active booking flow.
         - Do NOT overthink.
         - Output ONLY the category name.
+
+        For Context of router use the previous conversation history to route correctly
 
     """
     
@@ -226,10 +231,23 @@ def routing_logic(state: ReceptionistState):
         return "reschedule_booking"
     else:
         return "refusal_node"
+    
+trimmer_for_faq= trim_messages(
+    max_tokens= 200,
+    strategy="last",
+    token_counter=len,
+    include_system=False,
+    start_on="human",
+)
+
 
 
 def faq_node(state: ReceptionistState):
     print("FAQ Node Activated")
+
+    message_history= trimmer_for_faq.invoke(state["messages"])
+    # As message_history is a list of LangChain message objects so removing AIMessage ToolMessage content= xyz
+    history_text = "\n".join(f"{msg.type}: {msg.content}" for msg in message_history)
     
     current_intent= state["intent"]
     print(current_intent)
@@ -310,10 +328,21 @@ def faq_node(state: ReceptionistState):
                                                             
         If no:
         "Thank you for choosing Caps and Crowns Dental Clinic. Have a wonderful day!"
-    
                                   
+        Also use the Conversation history for previous context.
+        When the user asks a follow-up question such as:
+        "how much?"
+        "what about Sunday?"
+        "and whitening?"
+        "how long does it take?"
+
+        use the Conversation History to determine what they are referring to.                                  
+                                     
         USER QUERY:
         {query}
+
+        CONVERSATION HISTORY:
+        {history_text}
         
         CONTEXT:
         {content_chunks}
