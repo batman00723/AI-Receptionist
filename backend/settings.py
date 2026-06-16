@@ -125,3 +125,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+import os
+
+os.environ["LANGSMITH_TRACING"] = "true"
+os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key.get_secret_value()
+os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project
+os.environ["LANGSMITH_ENDPOINT"] = settings.langsmith_endpoint
+
