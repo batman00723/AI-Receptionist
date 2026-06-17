@@ -17,7 +17,6 @@ class HybridRetrievalRerankService:
             rank=SearchRank('search_vector', query)
         ).order_by("-rank")[:10]
 
-        print(f"Vector Chunks: {vector_results}, keyword_results: {keyword_result}")
 
         fused_score = reciprocal_rank_fusion(vector_results=vector_results, keyword_results=keyword_result)
 

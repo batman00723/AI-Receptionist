@@ -26,13 +26,7 @@ class RouteResponse(BaseModel):
     #     description="A score between 0.0 and 1.0 reflecting how sure you are of this intent."
     # )
 
-trimmer_for_router= trim_messages(
-    max_tokens= 100,
-    strategy="last",
-    token_counter=len,
-    include_system=False,
-    start_on="human",
-)
+
 
 route_llm= RoutingLLMService()
 chatllm = ChatLLMService()
@@ -41,9 +35,8 @@ hybrid_retrieval= HybridRetrievalRerankService()
 
 
 def router_node(state: ReceptionistState):
-    message_history= trimmer_for_router.invoke(state["messages"])
-    # As message_history is a list of LangChain message objects so removing AIMessage ToolMessage content= xyz
-    history_text = "\n".join(f"{msg.type}: {msg.content}" for msg in message_history)
+    message_history= state["messages"][-4:]
+    print(f"Message_History_router_node: {message_history}")
     
     query= state["query"]
 
@@ -232,22 +225,12 @@ def routing_logic(state: ReceptionistState):
     else:
         return "refusal_node"
     
-trimmer_for_faq= trim_messages(
-    max_tokens= 200,
-    strategy="last",
-    token_counter=len,
-    include_system=False,
-    start_on="human",
-)
 
 
 
 def faq_node(state: ReceptionistState):
     print("FAQ Node Activated")
-
-    message_history= trimmer_for_faq.invoke(state["messages"])
-    # As message_history is a list of LangChain message objects so removing AIMessage ToolMessage content= xyz
-    history_text = "\n".join(f"{msg.type}: {msg.content}" for msg in message_history)
+    message_history = state["messages"][-10:]
     
     current_intent= state["intent"]
     print(current_intent)
@@ -256,16 +239,24 @@ def faq_node(state: ReceptionistState):
 
     query_vector= embedder.get_embedding(query)
 
-    cached = semantic_cache_search(query_vector)
-    CACHE_THRESHOLD = 0.05
-    if cached and cached.distance < CACHE_THRESHOLD:
-        print("SEMANTIC CACHE HIT")
-        print(f"Distance: {cached.distance}")
+    CACHEABLE_MIN_WORDS = 8
 
-        return {
-            "messages": [AIMessage(content=cached.response)],
-            "clinic_response": cached.response
-        }
+    use_cache = len(query.split()) >= CACHEABLE_MIN_WORDS
+
+    if use_cache:
+        cached = semantic_cache_search(query_vector)
+
+        CACHE_THRESHOLD = 0.05
+
+        if cached and cached.distance < CACHE_THRESHOLD:
+            print("SEMANTIC CACHE HIT")
+            print(f"Distance: {cached.distance}")
+
+            return {
+                "messages": [AIMessage(content=cached.response)],
+                "clinic_response": cached.response
+            }
+
 
     print("SEMANTIC CACHE MISS")
 
@@ -274,7 +265,7 @@ def faq_node(state: ReceptionistState):
 
     content_chunks = "\n\n".join([c.chunk for c in top_chunks])
 
-    system_prompt = SystemMessage(content=f"""
+    system_prompt = f"""
         You are the AI booking and information assistant for Caps and Crowns Dental Clinic.
 
         Your job is to:
@@ -336,21 +327,21 @@ def faq_node(state: ReceptionistState):
         "and whitening?"
         "how long does it take?"
 
-        use the Conversation History to determine what they are referring to.                                  
+        Use the Conversation History to determine what they are referring to,
+        or If the user asks a follow-up question, use the conversation history to understand what they are referring to.                               
                                      
         USER QUERY:
         {query}
-
-        CONVERSATION HISTORY:
-        {history_text}
         
         CONTEXT:
         {content_chunks}
 
         """
-        )
+        
     
-    response= chatllm.invoke([system_prompt]).content
+    messages_for_llm = [SystemMessage(content=system_prompt)] + message_history
+    
+    response= chatllm.invoke(messages_for_llm).content
 
     save_to_db(query= query,
                query_embedding= query_vector,
@@ -612,9 +603,9 @@ def booking_followup_node(state: ReceptionistState):
     missing= state.get("missing_booking_fields", [])
 
     prompt_map = {
-        "date": "What day would you like to come in?",
-        "time": "What time works best for you?",
-        "service": "What service are you lookinf for? Cleaning, Root Canal, Genral Consultation"
+        "date": "What day would you like to come in?📅",
+        "time": "What time works best for you?🕒",
+        "service": "What service are you looking for? Cleaning, Root Canal, Genral Consultation🦷"
     }
 
     response_text= prompt_map[missing[0]]
@@ -772,7 +763,7 @@ def show_booking_node(state: ReceptionistState):
 
     if not appointment:
         response = (
-            "Seems like you don't have any active appointments to show."
+            "It seems like you don't have any active appointment."
         )
         return {
             "clinic_response": response,
@@ -790,6 +781,24 @@ def show_booking_node(state: ReceptionistState):
         "clinic_response": response,
         "messages": [AIMessage(content= response)]
         }
+
+# This node is just a passthrough as langgraph needs a entry function for making an conditional edge
+def check_active_booking_node(state):
+    return {}
+
+def check_active_booking_router(state: ReceptionistState):
+    if state.get("active_appointment"):
+        return "reschedule"    
+    return "no_booking"
+
+
+def no_booking_response(state: ReceptionistState):
+    response= "I'm Sorry!😔, but you don't have any active booking to reschedule."
+    return {
+        "clinic_response": response,
+        "messages": [AIMessage(content= response)]
+    }
+
 
 
 class RescheduleExtraction(BaseModel):
@@ -1106,9 +1115,42 @@ def check_reschedule_availabiity_node(state: ReceptionistState):
 
 # Future bug Solve Problem
 
+# 1.  Semantic Cache Issue
+#
+# Current cache uses only query embeddings.
+# This causes incorrect cache hits for conversational follow-ups
+# such as "yes", "no", "okay", "how much?", etc.
+#
+# Example:
+# User A:
+#   "Do you offer whitening?" -> "Yes"
+#
+# User B:
+#   "Can I reschedule?" -> "Yes"
+#
+# Both may generate similar embeddings and return unrelated
+# cached responses because conversation history is not part
+# of the cache key.
+#
+# Future Improvements:
+# - Skip semantic cache for short/ambiguous queries
+# - Include conversation context in cache key
+# - Cache only standalone FAQ questions
+
+
+# 2.
+
 # if i say to reschedule my appointment without having any booking, so as i added if
 # no active appointments then hardcoded response. but in the langgraph workflow it had
 # nodes flowing forward so it goes further too. I have same setup of if no active appointment 
 # then give hardcoded response "You don't have any  booking to get cancelled." so in cancel node
 # i didnt had any nodes further as after cancel node workflow ended and in reschedule workflow continued 
 # I will add a conditional router before reschedule workflow even starts if there is no acti
+
+
+
+# Future roadmap:
+# - Voice calling support
+# - LiveKit integration
+# - Human handoff
+# - Multi-clinic support
