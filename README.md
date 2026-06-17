@@ -29,10 +29,81 @@ to automate dental clinic front desk operations.
 # Architecture
 
 <p align="center">
-  <img src="Dental Receptionist Agent.png" width="1100">
+  <img src="Dental Receptionist Agent 1.png" width="1100">
 </p>
 
 ---
+
+
+# Live Deployment
+
+The AI Receptionist is deployed on Render and accessible through WhatsApp, REST APIs, and an admin dashboard.
+
+### WhatsApp Demo
+
+Send a WhatsApp message to **+1 415 523 8886** with the code:
+
+```text
+join barn-factor
+```
+
+You can test:
+
+* Appointment Booking
+* Appointment Rescheduling
+* Appointment Cancellation
+* Appointment Retrieval
+* FAQ Queries
+* Emergency Escalation
+
+### Admin Dashboard
+
+https://ai-receptionist-e48c.onrender.com/dashboard
+
+Features:
+
+* Upload clinic documents
+* Manage knowledge base content
+* Remove outdated documents
+
+### API Documentation
+
+https://ai-receptionist-e48c.onrender.com/api_v1/docs
+
+Interactive Swagger documentation exposing:
+
+* AI Receptionist Endpoint
+* Booking Workflow
+* Rescheduling Workflow
+* Cancellation Workflow
+* Document Management APIs
+* WhatsApp Webhook Endpoints
+
+
+
+Features available in production:
+
+- Appointment Booking
+- Appointment Rescheduling
+- Appointment Cancellation
+- Appointment Retrieval
+- FAQ Resolution
+- Emergency Escalation
+
+
+# Production Metrics
+
+Measured using LangSmith tracing.
+
+| Metric | Value |
+|----------|----------|
+| FAQ Cache Hit Latency | ~1.1s |
+| FAQ Cache Miss Latency | ~1.6s |
+| Booking Workflow | ~0.8s - 4.6s |
+| Router Latency | ~0.6s |
+| State Persistence | PostgreSQL + LangGraph Checkpointer |
+
+Repeated FAQ requests are accelerated through semantic caching, reducing response latency from approximately 2.8s to 1.0s.
 
 # Core Design Principles
 
@@ -374,6 +445,23 @@ This prevents appointment requests from being lost when third-party services are
 
 ---
 
+# Observability
+
+The system is instrumented using LangSmith for:
+
+- Workflow tracing
+- Node-level latency analysis
+- Token usage tracking
+- Failure debugging
+- Execution path visualization
+
+This enabled identification of:
+
+- Cache hit vs cache miss behavior
+- Workflow bottlenecks
+- API latency hotspots
+
+
 # Technology Stack
 
 ### Backend
@@ -408,9 +496,7 @@ This prevents appointment requests from being lost when third-party services are
 
 # Future Work
 
-* Admin Dashboard
 * Document Management Portal
-* Semantic Caching
 * Voice Calling Workflow
 * Analytics Layer
 * Patient Portal
