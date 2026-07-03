@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Receptionist Demo</title>
+    <style>
+        :root {
+            --bg: #F5F5F7;
+            --surface: #FFFFFF;
+            --text: #1D1D1F;
+            --text-secondary: #86868B;
+            --primary: #34C759; /* Green for WhatsApp/iMessage feel */
+            --primary-dark: #248A3D;
+            --border: #E5E5EA;
+            --bot-bubble: #E9E9EB;
+            --user-bubble: #34C759;
+            --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .container {
+            display: flex;
+            width: 100%;
+            margin: 0 auto;
+            background: var(--surface);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        /* Sidebar - Try these */
+        .sidebar {
+            width: 340px;
+            border-right: 1px solid var(--border);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            background: #FBFBFD;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+        .sidebar p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .suggestion-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .suggestion-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(52, 199, 89, 0.1);
+        }
+        .suggestion-card h4 {
+            font-size: 0.85rem;
+            color: var(--primary-dark);
+            margin-bottom: 4px;
+        }
+        .suggestion-card p {
+            font-size: 0.8rem;
+            color: var(--text);
+            margin-bottom: 0;
+            font-style: italic;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--surface);
+        }
+
+        .chat-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #FBFBFD;
+        }
+        .avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FF7A66, #FF9B8A);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            overflow: hidden;
+        }
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .chat-header-info h3 {
+            font-size: 1rem;
+            margin-bottom: 2px;
+        }
+        .chat-header-info p {
+            font-size: 0.75rem;
+            color: var(--primary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .chat-header-info p::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .chat-window {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: #FAFAFA;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            position: relative;
+            word-wrap: break-word;
+        }
+        
+        .message.bot {
+            align-self: flex-start;
+            background: var(--bot-bubble);
+            color: var(--text);
+            border-bottom-left-radius: 4px;
+        }
+        .message.user {
+            align-self: flex-end;
+            background: var(--user-bubble);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .typing-indicator {
+            align-self: flex-start;
+            background: var(--bot-bubble);
+            padding: 12px 16px;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            display: none;
+            gap: 4px;
+        }
+        .typing-indicator span {
+            width: 6px;
+            height: 6px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .chat-input {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            background: var(--surface);
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            font-size: 0.95rem;
+            outline: none;
+            font-family: var(--font);
+            transition: border-color 0.2s;
+        }
+        .chat-input input:focus {
+            border-color: var(--primary);
+        }
+        .chat-input button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            padding: 0 20px;
+            font-weight: 600;
+            font-family: var(--font);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .chat-input button:hover {
+            background: var(--primary-dark);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>Simulate Patient</h2>
+        <p>Enter a phone number to test the booking & rescheduling logic for a specific patient.</p>
+        <input type="text" id="phoneInput" value="9876543210" style="width:100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 24px; font-family: var(--font); outline: none;">
+
+        <h2>Demo Scenarios</h2>
+        <p>Click a card to test the architecture. These are mapped to specific LangGraph nodes.</p>
+
+        <div class="suggestion-card" onclick="sendSuggestion('What are your opening hours today?')">
+            <h4>1. FAQ Node</h4>
+            <p>"What are your opening hours today?"</p>
+        </div>
+
+        <div class="suggestion-card" onclick="sendSuggestion('I am having severe bleeding after my tooth extraction, what should I do?')">
+            <h4>2. Emergency Fallback Node</h4>
+            <p>"I have severe bleeding after extraction!"</p>
+        </div>
+
+        <div class="suggestion-card" onclick="sendSuggestion('I want to book an appointment for a root canal next Monday.')">
+            <h4>3. Appointment Booking Node</h4>
+            <p>"I want to book an appointment for a root canal."</p>
+        </div>
+        
+        <div class="suggestion-card" onclick="sendSuggestion('Can I reschedule my upcoming appointment?')">
+            <h4>4. Reschedule Guard Node</h4>
+            <p>"Can I reschedule my appointment?"</p>
+        </div>
+
+        <div class="suggestion-card" onclick="sendSuggestion('I want to cancel my booking.')">
+            <h4>5. Cancel Booking Node</h4>
+            <p>"I want to cancel my appointment."</p>
+        </div>
+
+        <div class="suggestion-card" onclick="sendSuggestion('Can you show my current booking?')">
+            <h4>6. Show Current Booking Node</h4>
+            <p>"Show my current appointment."</p>
+        </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="chat-area">
+        <div class="chat-header">
+            <div class="avatar"><img src="/media/AI_Receptionist_Profile_Pic.png" alt="AI"></div>
+            <div class="chat-header-info">
+                <h3>Caps & Crowns AI Receptionist</h3>
+                <p>Online</p>
+            </div>
+        </div>
+
+        <div class="chat-window" id="chatWindow">
+            <div class="message bot">
+                Hi! I'm the AI Receptionist for Caps & Crowns Dental Clinic. How can I help you today?
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chatWindow = document.getElementById('chatWindow');
+    const messageInput = document.getElementById('messageInput');
+    const phoneInput = document.getElementById('phoneInput');
+    const typingIndicator = document.getElementById('typingIndicator');
+
+    messageInput.addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            sendMessage();
+        }
+    });
+
+    function appendMessage(text, sender) {
+        const div = document.createElement('div');
+        div.className = `message ${sender}`;
+        div.innerText = text;
+        chatWindow.insertBefore(div, typingIndicator);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function showTyping() {
+        typingIndicator.style.display = 'flex';
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function hideTyping() {
+        typingIndicator.style.display = 'none';
+    }
+
+    function sendSuggestion(text) {
+        messageInput.value = text;
+        sendMessage();
+    }
+
+    async function sendMessage() {
+        const text = messageInput.value.trim();
+        if (!text) return;
+
+        // Display user message
+        appendMessage(text, 'user');
+        messageInput.value = '';
+        messageInput.focus();
+
+        // Show typing indicator
+        showTyping();
+
+        const phone = phoneInput.value.trim() || 'demo_123';
+
+        try {
+            const response = await fetch(`/api_v1/query/receptionist?query=${encodeURIComponent(text)}&phone=${encodeURIComponent(phone)}`);
+            const data = await response.json();
+            
+            hideTyping();
+            
+            if (data.response) {
+                appendMessage(data.response, 'bot');
+            } else if (data.message) {
+                appendMessage("Error: " + data.message, 'bot');
+            } else {
+                appendMessage("Sorry, I encountered an issue parsing the response.", 'bot');
+            }
+        } catch (error) {
+            hideTyping();
+            appendMessage("Network error. Please make sure the backend is running.", 'bot');
+            console.error("Chat error:", error);
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -16,49 +16,49 @@
    ================================================================ */
 
 :root {
-    /* Blues */
-    --primary:       #2563eb;
-    --primary-light: #3b82f6;
-    --primary-pale:  #eff6ff;
-    --primary-mid:   #bfdbfe;
+    /* Peach */
+    --primary:       #ea887b;
+    --primary-light: #FF9B8A;
+    --primary-pale:  #FFF2F0;
+    --primary-mid:   #FFD5CE;
 
     /* Backgrounds */
-    --bg:            #f0f4fa;
-    --surface:       #ffffff;
-    --surface-alt:   #f8fafc;
+    --bg:            #F5F5F7;
+    --surface:       #FFFFFF;
+    --surface-alt:   #FBFBFD;
 
     /* Text */
-    --text:          #0f172a;
-    --text-secondary:#475569;
-    --text-muted:    #94a3b8;
+    --text:          #1D1D1F;
+    --text-secondary:#515154;
+    --text-muted:    #86868B;
 
     /* Borders */
-    --border:        #e2e8f0;
-    --border-focus:  #93c5fd;
+    --border:        #E5E5EA;
+    --border-focus:  #FFB5A8;
 
     /* Status */
-    --green:         #059669;
-    --green-bg:      #ecfdf5;
-    --green-border:  #a7f3d0;
-    --amber:         #d97706;
-    --amber-bg:      #fffbeb;
-    --amber-border:  #fde68a;
-    --red:           #dc2626;
-    --red-bg:        #fef2f2;
-    --red-border:    #fecaca;
+    --green:         #34C759;
+    --green-bg:      #F2FDF5;
+    --green-border:  #B9F1C8;
+    --amber:         #FF9500;
+    --amber-bg:      #FFF9F0;
+    --amber-border:  #FFE2B5;
+    --red:           #FF3B30;
+    --red-bg:        #FFF2F1;
+    --red-border:    #FFC9C6;
 
     /* Shadows */
-    --shadow-sm:  0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
-    --shadow-md:  0 4px 12px rgba(15,23,42,0.08), 0 2px 4px rgba(15,23,42,0.04);
-    --shadow-lg:  0 10px 30px rgba(15,23,42,0.10), 0 4px 8px rgba(15,23,42,0.04);
+    --shadow-sm:  0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:  0 4px 12px rgba(0,0,0,0.06);
+    --shadow-lg:  0 12px 32px rgba(0,0,0,0.08);
 
     /* Radius */
-    --radius-sm:  8px;
-    --radius-md:  14px;
-    --radius-lg:  20px;
+    --radius-sm:  12px;
+    --radius-md:  18px;
+    --radius-lg:  24px;
 
-    --font: 'Inter', sans-serif;
-    --font-display: 'Plus Jakarta Sans', sans-serif;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -106,12 +106,12 @@ body {
 .logo-mark {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, var(--primary), #60a5fa);
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(37,99,235,0.25);
+    box-shadow: 0 4px 12px rgba(255, 122, 102, 0.25);
     flex-shrink: 0;
 }
 
@@ -219,13 +219,15 @@ body {
 
 /* ── STATS ROW ── */
 .stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
     margin-bottom: 28px;
 }
 
 .stat-card {
+    flex: 1 1 300px;
+    max-width: 380px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -378,7 +380,7 @@ body {
 
 .field-input:focus {
     border-color: var(--primary-light);
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    box-shadow: 0 0 0 3px rgba(255,122,102,0.15);
     background: var(--surface);
 }
 
@@ -559,14 +561,14 @@ input[type=file] { display: none; }
     align-items: center;
     justify-content: center;
     gap: 8px;
-    box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+    box-shadow: 0 4px 14px rgba(255, 122, 102, 0.3);
     transition: all 0.2s;
     letter-spacing: 0.01em;
 }
 
 .upload-btn:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(37,99,235,0.4);
+    box-shadow: 0 6px 20px rgba(255, 122, 102, 0.4);
 }
 
 .upload-btn:active:not(:disabled) { transform: translateY(0); }
@@ -878,13 +880,11 @@ input[type=file] { display: none; }
 /* ── RESPONSIVE ── */
 @media (max-width: 960px) {
     .dashboard-grid { grid-template-columns: 1fr; }
-    .stats-row      { grid-template-columns: 1fr 1fr; }
     .topbar         { padding: 0 20px; }
     .wrapper        { padding: 24px 20px 50px; }
 }
 
 @media (max-width: 500px) {
-    .stats-row { grid-template-columns: 1fr; }
     .topbar-clock { display: none; }
 }
 </style>
@@ -932,17 +932,6 @@ input[type=file] { display: none; }
             </div>
         </div>
 
-        <div class="stat-card">
-            <div class="stat-icon purple">
-                <svg viewBox="0 0 24 24"><path d="M17,3A2,2 0 0,1 19,5V19A2,2 0 0,1 17,21H7A2,2 0 0,1 5,19V5A2,2 0 0,1 7,3H17M17,5H7V7H17V5M17,9H7V11H17V9M17,13H7V15H17V13M17,17H7V19H17V17Z"/></svg>
-            </div>
-            <div class="stat-body">
-                <div class="stat-label">KB Chunks</div>
-                <div class="stat-value" id="chunksCount">&#8212;</div>
-                <div class="stat-sub">Vector nodes</div>
-            </div>
-        </div>
-
         <div class="stat-card" style="display:flex; align-items:center; gap:14px; padding: 18px 20px;">
             <div style="flex-shrink:0; width:62px; height:62px; border-radius:50%; overflow:hidden; border:2.5px solid rgba(16,185,129,0.45); box-shadow:0 0 0 4px rgba(16,185,129,0.1);">
                 <img id="doctorPhoto" src="/media/doctor.png" alt="Dr. Aman Mishra"
@@ -950,7 +939,7 @@ input[type=file] { display: none; }
                     onerror="this.style.display='none'; document.getElementById('doctorPhotoFallback').style.display='flex';"
                     onload="this.style.display='block'; document.getElementById('doctorPhotoFallback').style.display='none';"
                 >
-                <div id="doctorPhotoFallback" style="width:100%; height:100%; background:linear-gradient(135deg,#0d9488,#059669); display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                <div id="doctorPhotoFallback" style="width:100%; height:100%; background:linear-gradient(135deg,var(--primary),var(--primary-light)); display:flex; align-items:center; justify-content:center; border-radius:50%;">
                     <svg viewBox="0 0 24 24" style="width:32px;height:32px;fill:white;"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg>
                 </div>
             </div>
@@ -961,16 +950,6 @@ input[type=file] { display: none; }
             </div>
         </div>
 
-        <div class="stat-card">
-            <div class="stat-icon amber">
-                <svg viewBox="0 0 24 24"><path d="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M7,7H17V9H7V7M7,11H17V13H7V11M7,15H14V17H7V15Z"/></svg>
-            </div>
-            <div class="stat-body">
-                <div class="stat-label">AI Receptionist</div>
-                <div class="stat-value" style="font-size:1rem; padding-top:6px; color:var(--green); letter-spacing:-0.01em;">Active</div>
-                <div class="stat-sub">WhatsApp &middot; RAG powered</div>
-            </div>
-        </div>
     </div>
 
     <!-- MAIN GRID -->
@@ -1054,7 +1033,11 @@ input[type=file] { display: none; }
 
 <!-- FOOTER -->
 <footer class="footer">
-    <span>&copy; Caps &amp; Crowns Dental Clinic &mdash; AI Receptionist System</span>
+    <div style="display: flex; gap: 8px; align-items: center;">
+        <span>&copy; Caps &amp; Crowns Dental Clinic &mdash; AI Receptionist System</span>
+        <span style="color:var(--border);">&vert;</span>
+        <span style="color:var(--text-muted);">Made with &hearts; by Aman</span>
+    </div>
     <span id="footerTs" style="color:var(--text-muted);">Loading&hellip;</span>
 </footer>
 
@@ -1154,6 +1137,32 @@ function showToast(message, type = "success") {
     setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
+/* ── CSRF & Security Helpers ── */
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function escapeHTML(str) {
+    return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+    }[tag] || tag));
+}
+
 /* ── API Calls ── */
 async function loadStats() {
     try {
@@ -1182,7 +1191,8 @@ async function loadDocuments() {
         docs.forEach(doc => {
             const cls = doc.status === 'PROCESSING' ? 'processing' : doc.status === 'FAILED' ? 'failed' : 'ready';
             const icon = getFileIcon(doc.file_type);
-            container.innerHTML += '<div class="document-card"><div class="doc-left"><div class="file-icon-wrap">' + icon + '</div><div class="doc-meta"><h3>' + doc.doc_name + '</h3><span class="doc-type-badge">' + String(doc.file_type).toUpperCase() + '</span></div></div><div class="doc-right"><span class="status ' + cls + '">' + doc.status + '</span><button class="delete-btn" onclick="deleteDocument(' + doc.id + ')" title="Delete document"><svg viewBox="0 0 24 24"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"/></svg></button></div></div>';
+            const safeName = escapeHTML(doc.doc_name);
+            container.innerHTML += '<div class="document-card"><div class="doc-left"><div class="file-icon-wrap">' + icon + '</div><div class="doc-meta"><h3>' + safeName + '</h3><span class="doc-type-badge">' + String(doc.file_type).toUpperCase() + '</span></div></div><div class="doc-right"><span class="status ' + cls + '">' + doc.status + '</span><button class="delete-btn" onclick="deleteDocument(' + doc.id + ')" title="Delete document"><svg viewBox="0 0 24 24"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"/></svg></button></div></div>';
         });
     } catch (err) { console.error("Docs error:", err); }
 }
@@ -1201,7 +1211,11 @@ async function uploadDocument() {
     formData.append("docs", file);
 
     try {
-        const res = await fetch(API_BASE + '/', { method: 'POST', body: formData });
+        const res = await fetch(API_BASE + '/', { 
+            method: 'POST', 
+            body: formData,
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
         if (!res.ok) throw new Error('Server error');
         showToast('Document uploaded successfully!', 'success');
         document.getElementById("docName").value = '';
@@ -1219,7 +1233,10 @@ async function uploadDocument() {
 async function deleteDocument(id) {
     if (!confirm('Remove this document from the knowledge base?')) return;
     try {
-        const res = await fetch(API_BASE + '/delete/' + id, { method: 'DELETE' });
+        const res = await fetch(API_BASE + '/delete/' + id, { 
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
         if (!res.ok) throw new Error('Delete failed');
         showToast('Document removed.', 'success');
         loadDocuments();

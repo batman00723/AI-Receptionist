@@ -19,11 +19,12 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from myapi.api import api_v1
-from myapi.views import dashboard
+from myapi.views import dashboard, demo_chat
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("api_v1/", api_v1.urls),
-    path("dashboard/", dashboard)
+    path("dashboard/", dashboard),
+    path("demo/", demo_chat)
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
