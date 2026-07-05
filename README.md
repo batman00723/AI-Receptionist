@@ -39,6 +39,19 @@ to automate dental clinic front desk operations.
 
 The AI Receptionist is deployed on Render and accessible through WhatsApp, REST APIs, and an admin dashboard.
 
+## Web Chat Demo
+
+https://ai-receptionist-e48c.onrender.com/demo/
+
+You can test:
+
+* Appointment Booking
+* Appointment Rescheduling
+* Appointment Cancellation
+* Appointment Retrieval
+* FAQ Queries
+* Emergency Escalation
+
 ### WhatsApp Demo
 
 Send a WhatsApp message to **+1 415 523 8886** with the code:
