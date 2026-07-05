@@ -45,11 +45,15 @@ class CalService:
                 "email": user_details.get(
                     "email",
                     synthetic_email
+                
                 ),
+                "phoneNumber": patient_phone,
                 "timeZone": "Asia/Kolkata",
                 "language": "en"
             }
         }
+
+        print(payload)
         response = requests.post(
             url,
             headers=self.headers,

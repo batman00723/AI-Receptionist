@@ -392,6 +392,9 @@ def booking_node(state: ReceptionistState):
     current_booking = state.get("booking_data") or {}
     query = state["query"]
 
+    print("CURRENT BOOKING STATE")
+    print(current_booking)
+
     structured_llm = route_llm.model.with_structured_output(
         BookingExtraction
 
@@ -473,11 +476,6 @@ def booking_node(state: ReceptionistState):
         - If a field is not explicitly present in latest message:
         return null for that field.
 
-        EXISTING BOOKING STATE:
-        {current_booking}
-
-        USER MESSAGE:
-        {query}
 
         Return ONLY valid JSON.
 
@@ -486,7 +484,14 @@ def booking_node(state: ReceptionistState):
         Only use you intelligence to make spellings correct for date time and service names for dental clinic.
     """
 
-    extraction = structured_llm.invoke(system_prompt)
+
+    messages = [
+    SystemMessage(content=system_prompt),
+    HumanMessage(content=query)
+    ]
+
+    extraction = structured_llm.invoke(messages)
+
 
     print("Raw Extracted Booking Data")
     print(extraction)
@@ -510,11 +515,26 @@ def booking_node(state: ReceptionistState):
     raw_time = clean(extraction.time_phrase)
     raw_service = clean(extraction.service)
 
+
+
+
     effective_date = raw_date or current_booking.get("date")
     effective_time = raw_time or current_booking.get("time")
     effective_service = (
         raw_service or current_booking.get("service")
     )
+
+    weekday_map = {
+    "next monday": "monday",
+    "next tuesday": "tuesday",
+    "next wednesday": "wednesday",
+    "next thursday": "thursday",
+    "next friday": "friday",
+    "next saturday": "saturday",
+    "next sunday": "sunday",
+    }
+
+    effective_date = weekday_map.get(effective_date, effective_date)
 
     updated_booking = {
         "date": effective_date,
@@ -528,6 +548,8 @@ def booking_node(state: ReceptionistState):
         combined_text = (
             f"{effective_date} {effective_time}"
         )
+        print("COMBINED TEXT")
+        print(repr(combined_text))
 
         parsed_dt = dateparser.parse(
             combined_text,
@@ -562,6 +584,12 @@ def booking_node(state: ReceptionistState):
                 "UTC:",
                 updated_booking["utc_time"]
             )
+
+
+            print("Raw extraction:", extraction)
+            print("Combined text:", combined_text)
+            print("Parsed datetime:", parsed_dt)
+            print("UTC datetime:", parsed_dt.astimezone(pytz.utc) if parsed_dt else None)
         else:
 
             print("Date parsing failed")
@@ -603,8 +631,8 @@ def booking_followup_node(state: ReceptionistState):
     missing= state.get("missing_booking_fields", [])
 
     prompt_map = {
-        "date": "What day would you like to come in?📅",
-        "time": "What time works best for you?🕒",
+        "date": "What day would you like to come in?. Note that we are closed on Sunday.📅",
+        "time": "What time works best for you?🕒. Please mention AM or PM.",
         "service": "What service are you looking for? Cleaning, Root Canal, Genral Consultation🦷"
     }
 
@@ -668,7 +696,7 @@ def check_availabiity_node(state: ReceptionistState):
             return {"clinic_response": fail_message, "intent": "booking", "active_workflow": "booking"}
     except Exception as e:
         # If api is down then manual entry by human receptionist.
-        error_message= "There is technical glitch, but don't worry I have informed your booking details to my supervisor he will handle and send you conformation messge soon.."
+        error_message= "There is technical glitch, but don't worry I have informed your booking details to my supervisor he will handle and send you conformation messge soon.. and please check your phone number..."
         print(e)
         return {"clinic_response": error_message, "intent": "emergency", "active_workflow": None}
     

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Receptionist Demo</title>
+    <link rel="icon" type="image/jpeg" href="/media/favicon_tooth.jpg">
     <style>
         :root {
             --bg: #F5F5F7;
@@ -245,7 +246,10 @@
     <div class="sidebar">
         <h2>Simulate Patient</h2>
         <p>Enter a phone number to test the booking & rescheduling logic for a specific patient.</p>
-        <input type="text" id="phoneInput" value="9876543210" style="width:100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 24px; font-family: var(--font); outline: none;">
+        <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+            <input type="text" id="phoneInput" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: var(--font); outline: none;">
+            <button onclick="generateRandomPhone()" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; transition: background 0.2s;" title="Generate Random Phone Number" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='var(--surface)'">🔄</button>
+        </div>
 
         <h2>Demo Scenarios</h2>
         <p>Click a card to test the architecture. These are mapped to specific LangGraph nodes.</p>
@@ -312,6 +316,15 @@
     const messageInput = document.getElementById('messageInput');
     const phoneInput = document.getElementById('phoneInput');
     const typingIndicator = document.getElementById('typingIndicator');
+
+    function generateRandomPhone() {
+        const firstDigit = Math.floor(Math.random() * 4) + 6;
+        const rest9Digits = Math.floor(Math.random() * 1000000000).toString().padStart(9, '0');
+        phoneInput.value = '+91' + firstDigit + rest9Digits;
+    }
+    
+    // Generate on initial load
+    generateRandomPhone();
 
     messageInput.addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
