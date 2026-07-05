@@ -516,8 +516,6 @@ def booking_node(state: ReceptionistState):
     raw_service = clean(extraction.service)
 
 
-
-
     effective_date = raw_date or current_booking.get("date")
     effective_time = raw_time or current_booking.get("time")
     effective_service = (

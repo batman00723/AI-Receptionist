@@ -1,10 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Receptionist Demo</title>
-    <link rel="icon" type="image/jpeg" href="/media/favicon_tooth.jpg">
+    <link rel="icon" type="image/jpeg" href="{% static 'favicon_tooth.jpg' %}">
     <style>
         :root {
             --bg: #F5F5F7;
@@ -288,7 +289,7 @@
     <!-- Chat -->
     <div class="chat-area">
         <div class="chat-header">
-            <div class="avatar"><img src="/media/AI_Receptionist_Profile_Pic.png" alt="AI"></div>
+            <div class="avatar"><img src="{% static 'AI_Receptionist_Profile_Pic.png' %}" alt="AI"></div>
             <div class="chat-header-info">
                 <h3>Caps & Crowns AI Receptionist</h3>
                 <p>Online</p>
