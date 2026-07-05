@@ -8,16 +8,34 @@
     <link rel="icon" type="image/jpeg" href="{% static 'favicon_tooth.jpg' %}">
     <style>
         :root {
+            /* Dark Mode (Default) */
+            --bg: #121212;
+            --surface: #1E1E1E;
+            --surface-alt: #252525;
+            --text: #E4E4E7;
+            --text-secondary: #A1A1AA;
+            --primary: #0d9488; /* Teal Green */
+            --primary-dark: #0f766e;
+            --border: #333333;
+            --bot-bubble: #27272A;
+            --user-bubble: #0d9488;
+            --shadow: rgba(0,0,0,0.3);
+            --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body.light-mode {
+            /* Light Mode */
             --bg: #F5F5F7;
             --surface: #FFFFFF;
+            --surface-alt: #FBFBFD;
             --text: #1D1D1F;
             --text-secondary: #86868B;
-            --primary: #34C759; /* Green for WhatsApp/iMessage feel */
-            --primary-dark: #248A3D;
+            --primary: #0d9488; 
+            --primary-dark: #0f766e;
             --border: #E5E5EA;
             --bot-bubble: #E9E9EB;
-            --user-bubble: #34C759;
-            --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --user-bubble: #0d9488;
+            --shadow: rgba(0,0,0,0.05);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -28,6 +46,7 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
+            transition: background 0.3s, color 0.3s;
         }
 
         /* Layout */
@@ -36,7 +55,8 @@
             width: 100%;
             margin: 0 auto;
             background: var(--surface);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            box-shadow: 0 10px 30px var(--shadow);
+            transition: background 0.3s;
         }
 
         /* Sidebar - Try these */
@@ -46,8 +66,9 @@
             padding: 24px;
             display: flex;
             flex-direction: column;
-            background: #FBFBFD;
+            background: var(--surface-alt);
             overflow-y: auto;
+            transition: background 0.3s, border-color 0.3s;
         }
 
         .sidebar h2 {
@@ -70,16 +91,16 @@
             margin-bottom: 12px;
             cursor: pointer;
             transition: all 0.2s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 5px var(--shadow);
         }
         .suggestion-card:hover {
             border-color: var(--primary);
             transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(52, 199, 89, 0.1);
+            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
         }
         .suggestion-card h4 {
             font-size: 0.85rem;
-            color: var(--primary-dark);
+            color: var(--primary);
             margin-bottom: 4px;
         }
         .suggestion-card p {
@@ -95,6 +116,7 @@
             display: flex;
             flex-direction: column;
             background: var(--surface);
+            transition: background 0.3s;
         }
 
         .chat-header {
@@ -103,13 +125,14 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: #FBFBFD;
+            background: var(--surface-alt);
+            transition: background 0.3s, border-color 0.3s;
         }
         .avatar {
             width: 42px;
             height: 42px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #FF7A66, #FF9B8A);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -151,7 +174,8 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
-            background: #FAFAFA;
+            background: var(--bg);
+            transition: background 0.3s;
         }
 
         .message {
@@ -206,6 +230,7 @@
             display: flex;
             gap: 12px;
             background: var(--surface);
+            transition: background 0.3s, border-color 0.3s;
         }
         .chat-input input {
             flex: 1;
@@ -215,7 +240,9 @@
             font-size: 0.95rem;
             outline: none;
             font-family: var(--font);
-            transition: border-color 0.2s;
+            background: var(--bg);
+            color: var(--text);
+            transition: border-color 0.2s, background 0.3s, color 0.3s;
         }
         .chat-input input:focus {
             border-color: var(--primary);
@@ -235,6 +262,29 @@
             background: var(--primary-dark);
         }
 
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .theme-toggle {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 4px 8px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+            outline: none;
+        }
+        .theme-toggle:hover {
+            border-color: var(--primary);
+        }
+
         @media (max-width: 768px) {
             .sidebar { display: none; }
         }
@@ -245,11 +295,14 @@
 <div class="container">
     <!-- Sidebar -->
     <div class="sidebar">
-        <h2>Simulate Patient</h2>
+        <div class="header-top">
+            <h2>Simulate Patient</h2>
+            <button id="themeToggle" class="theme-toggle" title="Toggle Light/Dark Mode">☀️ Light</button>
+        </div>
         <p>Enter a phone number to test the booking & rescheduling logic for a specific patient.</p>
         <div style="display: flex; gap: 8px; margin-bottom: 24px;">
-            <input type="text" id="phoneInput" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: var(--font); outline: none;">
-            <button onclick="generateRandomPhone()" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; transition: background 0.2s;" title="Generate Random Phone Number" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='var(--surface)'">🔄</button>
+            <input type="text" id="phoneInput" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: var(--font); outline: none;">
+            <button onclick="generateRandomPhone()" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; transition: background 0.2s;" title="Generate Random Phone Number" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--surface)'">🔄</button>
         </div>
 
         <h2>Demo Scenarios</h2>
@@ -317,6 +370,17 @@
     const messageInput = document.getElementById('messageInput');
     const phoneInput = document.getElementById('phoneInput');
     const typingIndicator = document.getElementById('typingIndicator');
+    const themeToggle = document.getElementById('themeToggle');
+
+    // Theme Toggle Logic
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('light-mode');
+        if (document.body.classList.contains('light-mode')) {
+            themeToggle.innerHTML = '🌙 Dark';
+        } else {
+            themeToggle.innerHTML = '☀️ Light';
+        }
+    });
 
     function generateRandomPhone() {
         const firstDigit = Math.floor(Math.random() * 4) + 6;
