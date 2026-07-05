@@ -50,3 +50,4 @@ temp/
 tmp/
 
 media/
+staticfiles/
