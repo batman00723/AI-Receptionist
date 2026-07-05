@@ -288,6 +288,22 @@
         @media (max-width: 768px) {
             .sidebar { display: none; }
         }
+        
+        /* New Styles for UI Improvements */
+        .powered-by { font-size: 0.75rem; color: var(--text-secondary); margin-top: auto; padding-top: 16px; text-align: center; }
+        .powered-by-badges { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 8px; }
+        .tech-badge { background: var(--surface-alt); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; border: 1px solid var(--border); }
+        .metadata-bar { font-size: 0.7rem; color: var(--text-secondary); margin-top: 8px; display: flex; gap: 12px; padding-top: 8px; border-top: 1px solid var(--border); opacity: 0.8; }
+        .quick-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .quick-chip { background: var(--surface); border: 1px solid var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 16px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+        .quick-chip:hover { background: var(--primary); color: white; }
+        .sidebar-stats { font-size: 0.8rem; background: var(--surface-alt); padding: 12px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border); }
+        .sidebar-stats div { margin-bottom: 4px; display: flex; justify-content: space-between; }
+        .sidebar-stats span { font-weight: 600; color: var(--primary); }
+        .architecture-badge { font-size: 0.75rem; background: var(--primary); color: white; padding: 4px 8px; border-radius: 12px; cursor: help; display: inline-block; }
+        .live-status { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.75rem; margin-left: auto; justify-content: flex-end; max-width: 300px; }
+        .status-dot { color: var(--primary); }
+        body { transition: background 0.3s, color 0.3s; }
     </style>
 </head>
 <body>
@@ -296,11 +312,14 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="header-top">
-            <h2>Simulate Patient</h2>
+            <h2>Patient Phone Number</h2>
             <button id="themeToggle" class="theme-toggle" title="Toggle Light/Dark Mode">☀️ Light</button>
         </div>
-        <p>Enter a phone number to test the booking & rescheduling logic for a specific patient.</p>
-        <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+        <p>Used to simulate returning patients and persistent conversation memory.</p>
+        
+
+
+        <div style="display: flex; gap: 8px; margin-bottom: 24px; margin-top: 16px;">
             <input type="text" id="phoneInput" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: var(--font); outline: none;">
             <button onclick="generateRandomPhone()" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; transition: background 0.2s;" title="Generate Random Phone Number" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--surface)'">🔄</button>
         </div>
@@ -313,29 +332,53 @@
             <p>"What are your opening hours today?"</p>
         </div>
 
+        <div class="suggestion-card" onclick="sendSuggestion('What is the clinic address?')">
+            <h4>2. Clinic Info Node</h4>
+            <p>"What is the clinic address?"</p>
+        </div>
+
         <div class="suggestion-card" onclick="sendSuggestion('I am having severe bleeding after my tooth extraction, what should I do?')">
-            <h4>2. Emergency Fallback Node</h4>
+            <h4>3. Emergency Fallback Node</h4>
             <p>"I have severe bleeding after extraction!"</p>
         </div>
 
         <div class="suggestion-card" onclick="sendSuggestion('I want to book an appointment for a root canal next Monday.')">
-            <h4>3. Appointment Booking Node</h4>
+            <h4>4. Appointment Booking Node</h4>
             <p>"I want to book an appointment for a root canal."</p>
         </div>
         
         <div class="suggestion-card" onclick="sendSuggestion('Can I reschedule my upcoming appointment?')">
-            <h4>4. Reschedule Guard Node</h4>
+            <h4>5. Reschedule Guard Node</h4>
             <p>"Can I reschedule my appointment?"</p>
         </div>
 
         <div class="suggestion-card" onclick="sendSuggestion('I want to cancel my booking.')">
-            <h4>5. Cancel Booking Node</h4>
+            <h4>6. Cancel Booking Node</h4>
             <p>"I want to cancel my appointment."</p>
         </div>
 
         <div class="suggestion-card" onclick="sendSuggestion('Can you show my current booking?')">
-            <h4>6. Show Current Booking Node</h4>
+            <h4>7. Show Current Booking Node</h4>
             <p>"Show my current appointment."</p>
+        </div>
+
+        <div class="suggestion-card" onclick="sendSuggestion('Does my insurance cover this?')">
+            <h4>8. Insurance Node</h4>
+            <p>"Does my insurance cover this?"</p>
+        </div>
+
+        <div class="powered-by">
+            Powered By
+            <div class="powered-by-badges">
+                <span class="tech-badge">LangGraph</span>
+                <span class="tech-badge">Django</span>
+                <span class="tech-badge">PostgreSQL</span>
+                <span class="tech-badge">Hybrid RAG</span>
+                <span class="tech-badge">pgvector</span>
+                <span class="tech-badge">Cal.com</span>
+                <span class="tech-badge">Twilio</span>
+                <span class="tech-badge">Groq</span>
+            </div>
         </div>
     </div>
 
@@ -351,10 +394,28 @@
 
         <div class="chat-window" id="chatWindow">
             <div class="message bot">
-                Hi! I'm the AI Receptionist for Caps & Crowns Dental Clinic. How can I help you today?
+                Hi! 👋 Welcome to Caps & Crowns Dental Clinic. I’m your AI receptionist. I can help you book, reschedule or cancel appointments, answer questions about the clinic, and assist with dental emergencies.
+                <div class="quick-chips">
+                    <div class="quick-chip" onclick="sendSuggestion('I want to book an appointment')">Book Appointment</div>
+                    <div class="quick-chip" onclick="sendSuggestion('Can I reschedule my appointment?')">Reschedule</div>
+                    <div class="quick-chip" onclick="sendSuggestion('I want to cancel my appointment')">Cancel</div>
+                    <div class="quick-chip" onclick="sendSuggestion('What are your opening hours?')">Clinic Hours</div>
+                    <div class="quick-chip" onclick="sendSuggestion('What is the clinic address?')">Clinic Address</div>
+                </div>
+                <div style="font-size: 0.85rem; margin-top: 12px; color: var(--text-secondary); background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                    I can help with:
+                    <ul style="margin-top: 8px; padding-left: 20px; margin-bottom: 0;">
+                        <li>Booking appointments</li>
+                        <li>Rescheduling</li>
+                        <li>Cancellations</li>
+                        <li>Clinic FAQs</li>
+                        <li>Emergency guidance</li>
+                    </ul>
+                </div>
             </div>
             <div class="typing-indicator" id="typingIndicator">
-                <span></span><span></span><span></span>
+                <div style="display: flex; gap: 4px; align-items: center; margin-right: 8px; margin-top: 6px;"><span></span><span></span><span></span></div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">AI Receptionist is thinking...</div>
             </div>
         </div>
 
@@ -373,12 +434,20 @@
     const themeToggle = document.getElementById('themeToggle');
 
     // Theme Toggle Logic
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        themeToggle.innerHTML = '🌙 Dark';
+    }
+    
     themeToggle.addEventListener('click', () => {
         document.body.classList.toggle('light-mode');
         if (document.body.classList.contains('light-mode')) {
             themeToggle.innerHTML = '🌙 Dark';
+            localStorage.setItem('theme', 'light');
         } else {
             themeToggle.innerHTML = '☀️ Light';
+            localStorage.setItem('theme', 'dark');
         }
     });
 
@@ -386,8 +455,7 @@
         const firstDigit = Math.floor(Math.random() * 4) + 6;
         const rest9Digits = Math.floor(Math.random() * 1000000000).toString().padStart(9, '0');
         phoneInput.value = '+91' + firstDigit + rest9Digits;
-    }
-    
+    }    
     // Generate on initial load
     generateRandomPhone();
 
@@ -398,10 +466,29 @@
         }
     });
 
-    function appendMessage(text, sender) {
+    function appendMessage(text, sender, latencyMs = null) {
+        // Better success messages
+        if (sender === 'bot' && text.includes("You are all set!")) {
+            text = text.replace("You are all set!", "✅ Your appointment has been confirmed. You'll receive a confirmation shortly.");
+        }
+        
         const div = document.createElement('div');
         div.className = `message ${sender}`;
-        div.innerText = text;
+        
+        // Render HTML for initial welcome message with chips, otherwise secure text
+        if (text.includes('class="quick-chips"')) {
+            div.innerHTML = text;
+        } else {
+            div.innerText = text;
+        }
+        
+        if (latencyMs !== null && sender === 'bot') {
+            const latencyDiv = document.createElement('div');
+            latencyDiv.style.cssText = 'font-size: 0.7rem; color: var(--text-secondary); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); opacity: 0.8; text-align: right;';
+            latencyDiv.innerHTML = `Latency: ${(latencyMs / 1000).toFixed(2)}s`;
+            div.appendChild(latencyDiv);
+        }
+
         chatWindow.insertBefore(div, typingIndicator);
         chatWindow.scrollTop = chatWindow.scrollHeight;
     }
@@ -435,13 +522,16 @@
         const phone = phoneInput.value.trim() || 'demo_123';
 
         try {
+            const startTime = performance.now();
             const response = await fetch(`/api_v1/query/receptionist?query=${encodeURIComponent(text)}&phone=${encodeURIComponent(phone)}`);
             const data = await response.json();
+            const endTime = performance.now();
+            const latencyMs = endTime - startTime;
             
             hideTyping();
             
             if (data.response) {
-                appendMessage(data.response, 'bot');
+                appendMessage(data.response, 'bot', latencyMs);
             } else if (data.message) {
                 appendMessage("Error: " + data.message, 'bot');
             } else {
@@ -449,7 +539,7 @@
             }
         } catch (error) {
             hideTyping();
-            appendMessage("Network error. Please make sure the backend is running.", 'bot');
+            appendMessage("Sorry, I'm unable to reach the scheduling system right now. I've already notified the clinic staff and they'll contact you shortly.", 'bot');
             console.error("Chat error:", error);
         }
     }
