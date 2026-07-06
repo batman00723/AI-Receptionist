@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field
 from .state import ReceptionistState
 from backend.config import settings
-from myapi.rag_pipeline.llm import ChatLLMService, RoutingLLMService
+from myapi.rag_pipeline.llm import ChatLLMService, RoutingLLMService, ExtractionLLMService
 from langgraph.graph import END
 from myapi.rag_pipeline.embedding import EmbeddingService
 from myapi.rag_pipeline.retrieval_Service import HybridRetrievalRerankService
-from langchain_core.messages import SystemMessage, HumanMessage, trim_messages, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from typing import Optional
 from myapi.agent.cal_service import CalService      
 from myapi.agent.email_service import send_emergency_alert, send_cancellation_alert
@@ -30,6 +30,7 @@ class RouteResponse(BaseModel):
 
 route_llm= RoutingLLMService()
 chatllm = ChatLLMService()
+extractionllm= ExtractionLLMService()
 embedder = EmbeddingService()
 hybrid_retrieval= HybridRetrievalRerankService()
 
@@ -266,7 +267,8 @@ def faq_node(state: ReceptionistState):
     content_chunks = "\n\n".join([c.chunk for c in top_chunks])
 
     system_prompt = f"""
-        You are the AI booking and information assistant for Caps and Crowns Dental Clinic.
+        You are the booking and information assistant for Caps and Crowns Dental Clinic.
+        Your Name is Monica and age 36 and live in Galaxy Apartments Bandra Mumbai.
 
         Your job is to:
         - Answer clinic-related questions
@@ -395,7 +397,7 @@ def booking_node(state: ReceptionistState):
     print("CURRENT BOOKING STATE")
     print(current_booking)
 
-    structured_llm = route_llm.model.with_structured_output(
+    structured_llm = extractionllm.model.with_structured_output(
         BookingExtraction
 
     )
@@ -859,7 +861,7 @@ def reschedule_node(state: ReceptionistState):
     rescheduled_booking = state.get("reschedule_data") or {}
     query = state["query"]
 
-    structured_llm = route_llm.model.with_structured_output(
+    structured_llm = extractionllm.model.with_structured_output(
         RescheduleExtraction
     )
 

@@ -1,23 +1,12 @@
-# Future bug Solve Problem
+# Handle repeated booking attempts when an active appointment already exists.
 
-# 1.  Semantic Cache Issue
-#
-# Current cache uses only query embeddings.
-# This causes incorrect cache hits for conversational follow-ups
-# such as "yes", "no", "okay", "how much?", etc.
-#
-# Example:
-# User A:
-#   "Do you offer whitening?" -> "Yes"
-#
-# User B:
-#   "Can I reschedule?" -> "Yes"
-#
-# Both may generate similar embeddings and return unrelated
-# cached responses because conversation history is not part
-# of the cache key.
-#
+# Current behavior:
+# - Booking succeeds.
+# - Starting another booking with the same patient can lead to inconsistent state.
 
+# Expected behavior:
+# - Detect existing active appointment.
+# - Ask user whether they want to cancel/reschedule or create an additional appointment (depending on business rules).
 
 
 # Future roadmap:
