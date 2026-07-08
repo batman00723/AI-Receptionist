@@ -1,3 +1,16 @@
+# Title:
+# Handle consecutive booking attempts after an active booking exists.
+
+# Current:
+# booking_data is cleared by setting it to None, which causes reducer issues on subsequent bookings.
+
+# Future solution:
+# Separate transient booking workflow state from persistent appointment state, or replace the reducer with explicit state replacement.
+
+
+
+
+
 # Handle repeated booking attempts when an active appointment already exists.
 
 # Current behavior:

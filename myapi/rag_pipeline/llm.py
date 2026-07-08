@@ -8,7 +8,7 @@ class RoutingLLMService:
     def __init__(self):
         self.model= ChatGroq(
             api_key= settings.groq_api_key.get_secret_value(),
-            model= "llama-3.1-8b-instant",
+            model= "meta-llama/llama-4-scout-17b-16e-instruct",
             temperature= 0.0,
         )
     def invoke(self, messages):

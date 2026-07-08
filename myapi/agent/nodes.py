@@ -22,9 +22,6 @@ class RouteResponse(BaseModel):
     intent: Literal[ "booking", "cancel", "show_booking", "faq", "emergency", "nonsense", "reschedule", "completed"] = Field(
         description="Categorize the user's query into: 'faq', 'booking', 'cancel', 'reschedule', 'emergency', or 'nonsense'."
     )
-    # confidence: float = Field(
-    #     description="A score between 0.0 and 1.0 reflecting how sure you are of this intent."
-    # )
 
 
 
@@ -196,10 +193,9 @@ def router_node(state: ReceptionistState):
         structured_llm = route_llm.model.with_structured_output(RouteResponse)
         response = structured_llm.invoke(message_for_llm)
         intent = response.intent
-        print(intent)
-        # print(response.confidence)
-        # if response.confidence < 0.6:
-        #     intent= "nonsense" 
+
+        print(f"Intent Router Response: {intent}")
+
     except Exception as e:
         print(f"Router Error: {e}")
         intent = "faq"
@@ -234,7 +230,7 @@ def faq_node(state: ReceptionistState):
     message_history = state["messages"][-10:]
     
     current_intent= state["intent"]
-    print(current_intent)
+    print(f"Current Intent {current_intent}")
     
     query= state["query"]
 
@@ -394,8 +390,7 @@ def booking_node(state: ReceptionistState):
     current_booking = state.get("booking_data") or {}
     query = state["query"]
 
-    print("CURRENT BOOKING STATE")
-    print(current_booking)
+    print(f"CURRENT BOOKING STATE: {current_booking}")
 
     structured_llm = extractionllm.model.with_structured_output(
         BookingExtraction
@@ -484,6 +479,17 @@ def booking_node(state: ReceptionistState):
         Do not infer any booking details on your own unless user provides it.
         If user gives wrong spelling of week days for example Frday so make it Friday.
         Only use you intelligence to make spellings correct for date time and service names for dental clinic.
+
+
+        Your ONLY responsibility is extracting structured information.
+
+        Never ask follow-up questions.
+
+        Never explain.
+
+        Never respond conversationally.
+
+        If information is missing, return null for those fields.
     """
 
 
@@ -494,10 +500,11 @@ def booking_node(state: ReceptionistState):
 
     extraction = structured_llm.invoke(messages)
 
-
     print("Raw Extracted Booking Data")
     print(extraction)
 
+
+# Here LLM was returning these invalid values so normalise that
     def clean(value):
 
         if not value:
