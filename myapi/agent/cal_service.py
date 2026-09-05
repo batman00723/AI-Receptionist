@@ -35,7 +35,7 @@ class CalService:
 
     def create_booking(self, booking_data, user_details):
         patient_phone = user_details.get("phone", "000000")
-        synthetic_email = f"hellodemo@clinic-internal.com"
+        synthetic_email = f"amanmishrarewa@gmail.com"   # Use any demo mail cus no patient gives their mail for booking
         url = f"{self.base_url}/bookings"
         payload = {
             "start": booking_data["utc_time"],

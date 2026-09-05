@@ -488,7 +488,7 @@ This enabled identification of:
 
 ### LLM Layer
 
-* meta-llama/llama-4-scout-17b-16e-instruct by Groq
+* gpt oss 20b by Groq
 
 ### Retrieval
 

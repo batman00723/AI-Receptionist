@@ -8,7 +8,7 @@ class RoutingLLMService:
     def __init__(self):
         self.model= ChatGroq(
             api_key= settings.groq_api_key.get_secret_value(),
-            model= "meta-llama/llama-4-scout-17b-16e-instruct",
+            model= "openai/gpt-oss-20b",
             temperature= 0.0,
         )
     def invoke(self, messages):
@@ -24,7 +24,7 @@ class ExtractionLLMService:
     def __init__(self):
         self.model= ChatGroq(
             api_key= settings.groq_api_key.get_secret_value(),
-            model= "meta-llama/llama-4-scout-17b-16e-instruct",
+            model= "openai/gpt-oss-20b",
             temperature= 0.0,
         )
     def invoke(self, messages):
@@ -40,7 +40,7 @@ class ChatLLMService:
     def __init__(self):
         self.model= ChatGroq(
             api_key= settings.groq_api_key.get_secret_value(),
-            model= "meta-llama/llama-4-scout-17b-16e-instruct",
+            model= "openai/gpt-oss-20b",
             temperature= 0.4,
             max_tokens= 150
         )
